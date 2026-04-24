@@ -1,5 +1,11 @@
 # LegalDataPlatform
 
+[![CI](https://github.com/henriquezbh5-cpu/legaldataplatform/actions/workflows/ci.yml/badge.svg)](https://github.com/henriquezbh5-cpu/legaldataplatform/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue.svg)](https://www.python.org)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-16-336791.svg)](https://www.postgresql.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 ETL/ELT platform for legal and commercial data. Python 3.11+, PostgreSQL 16, AWS (S3, Lambda, Glue), Docker.
 
 ## Requirements addressed

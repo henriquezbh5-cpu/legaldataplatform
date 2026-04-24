@@ -1,0 +1,20 @@
+# CODEOWNERS — reviewers auto-requested on PRs touching these paths.
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Everything defaults to the project owner
+*                                   @henriquezbh5-cpu
+
+# Infrastructure (Terraform, Docker, CI) — changes here affect all contributors
+/infra/                             @henriquezbh5-cpu
+/.github/                           @henriquezbh5-cpu
+/Dockerfile                         @henriquezbh5-cpu
+/docker-compose.yml                 @henriquezbh5-cpu
+
+# Database schema and migrations — irreversible changes live here
+/src/database/migrations/           @henriquezbh5-cpu
+
+# Data quality rules — business-logic reviewers should sign off
+/src/data_quality/rules/            @henriquezbh5-cpu
+
+# Production AWS Lambda handlers — blast radius into runtime
+/src/aws/lambda_handlers/           @henriquezbh5-cpu
