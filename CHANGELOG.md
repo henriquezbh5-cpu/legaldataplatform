@@ -8,10 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- LICENSE (MIT), CONTRIBUTING.md, CHANGELOG.md, CODEOWNERS and GitHub issue/PR templates for open-source project governance.
+- LICENSE (MIT), CONTRIBUTING.md, CHANGELOG.md, CODE_OF_CONDUCT.md, CODEOWNERS, SECURITY.md and GitHub issue/PR templates for open-source project governance.
 - Pre-configured Grafana datasource and dashboard for pipeline metrics (auto-provisioned on `docker compose up`).
 - Jupyter notebook `notebooks/pipeline_analysis.ipynb` demonstrating SCD2 point-in-time queries, cross-source aggregation and partition-aware analytics.
 - Status badges in README (CI, Python version, ruff, license).
+- **mkdocs documentation site** with Material theme, Mermaid diagrams, auto-published to GitHub Pages on `docs/**` changes.
+- **dbt Gold-layer models** (`dbt/`) owning the SQL transformation contract separately from Python: 3 staging views and 3 gold tables with schema tests (unique keys, accepted values, not-null, expression_is_true) using `dbt_utils`, plus a dedicated `dbt-validate` job in CI that parses + compiles against the real PostgreSQL.
+- **pytest-benchmark** suite covering the four hot paths (Pydantic, row_hash, DQ rule engine, CSV encoding). Informational in CI; flags regressions > 10× in PR logs.
+- **Load tests with Locust** (`load_tests/`): 5 representative query scenarios with documented p50/p95 budgets per workload.
+
+### Changed
+- `mypy` configuration refined: removed blanket `strict=true`. Now enforces `check_untyped_defs`, `disallow_incomplete_defs`, `warn_redundant_casts`. Strict checking (`disallow_untyped_defs`) applied per-module to `src.schemas.*` and `src.observability.*` where full typing is already achieved.
+- CI: `docker-build` now depends on `lint` + `unit-tests` (gated). `codecov-action` v4 → v5. `docker/build-push-action` v5 → v6.
+- CI: Unit test runners disable benchmarks during correctness tests and run them separately as an informational step.
 
 ## [0.1.0] - 2026-04-24
 
