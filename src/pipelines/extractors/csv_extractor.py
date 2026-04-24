@@ -3,6 +3,7 @@
 Polars reads CSV 10-30x faster than Pandas for large files and uses less
 memory. For CSVs too large to fit in RAM, we use `scan_csv` + streaming.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -64,9 +65,9 @@ class CSVExtractor(Extractor):
                 records=records,
                 attributes={"file": str(self.file_path), "chunk_offset": offset},
             )
-            records_extracted.labels(
-                source=self.source_system, pipeline=self.source_name
-            ).inc(batch.size)
+            records_extracted.labels(source=self.source_system, pipeline=self.source_name).inc(
+                batch.size
+            )
 
             logger.info(
                 "csv_extractor.batch",

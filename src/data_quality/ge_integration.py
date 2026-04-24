@@ -9,6 +9,7 @@ We keep the two systems complementary:
     rule_engine.py  → fast, in-pipeline, structural checks
     ge_integration  → richer checks + documentation artifacts
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -19,6 +20,7 @@ import pandas as pd
 try:  # GE is optional for lightweight deployments
     import great_expectations as gx
     from great_expectations.core.expectation_suite import ExpectationSuite
+
     GE_AVAILABLE = True
 except ImportError:
     GE_AVAILABLE = False
@@ -31,7 +33,7 @@ logger = get_logger(__name__)
 def build_expectation_suite(
     suite_name: str,
     column_expectations: dict[str, list[dict[str, Any]]],
-) -> "ExpectationSuite":
+) -> ExpectationSuite:
     """Build a GE suite from a dict of {column: [expectation_dicts]}.
 
     Example:
@@ -62,7 +64,7 @@ def build_expectation_suite(
 
 def validate_dataframe(
     df: pd.DataFrame,
-    suite: "ExpectationSuite",
+    suite: ExpectationSuite,
     data_docs_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Run a suite against a DataFrame, optionally rendering Data Docs."""

@@ -1,4 +1,5 @@
 """Pydantic schemas for the commercial domain."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -6,7 +7,6 @@ from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
-
 
 ISOCurrency = Annotated[str, StringConstraints(min_length=3, max_length=3, to_upper=True)]
 CountryCode = Annotated[str, StringConstraints(min_length=2, max_length=2, to_upper=True)]

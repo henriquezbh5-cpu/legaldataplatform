@@ -9,6 +9,7 @@ Stages:
     3. Load Silver → PostgreSQL (COPY + UPSERT)
     4. Build Gold aggregates (refresh materialized views)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -40,6 +41,7 @@ configure_logging()
 # -----------------------------------------------------------------------------
 # Tasks
 # -----------------------------------------------------------------------------
+
 
 @task(retries=3, retry_delay_seconds=30, log_prints=True)
 async def extract_from_csv(
@@ -132,9 +134,17 @@ async def load_legal_documents(records: list[dict[str, Any]], pipeline: str) -> 
         r.setdefault("metadata", {})
 
     columns = [
-        "document_date", "source_system", "source_id", "source_hash",
-        "document_type", "title", "content", "jurisdiction", "tags",
-        "metadata", "ingested_at",
+        "document_date",
+        "source_system",
+        "source_id",
+        "source_hash",
+        "document_type",
+        "title",
+        "content",
+        "jurisdiction",
+        "tags",
+        "metadata",
+        "ingested_at",
     ]
     # Strip any keys not in columns
     filtered = [{k: r.get(k) for k in columns} for r in records]
@@ -155,9 +165,7 @@ async def load_legal_documents(records: list[dict[str, Any]], pipeline: str) -> 
 
 
 @task(log_prints=True)
-async def persist_quarantine(
-    rejected: list[dict[str, Any]], pipeline: str
-) -> str | None:
+async def persist_quarantine(rejected: list[dict[str, Any]], pipeline: str) -> str | None:
     """Persist rejected records to the Quarantine bucket for triage."""
     if not rejected:
         return None
@@ -190,6 +198,7 @@ async def refresh_gold() -> None:
 # Helpers
 # -----------------------------------------------------------------------------
 
+
 def _map_legal_doc_csv(row: dict[str, Any]) -> dict[str, Any]:
     """Map source CSV columns to LegalDocumentSchema field names."""
     src_id = row.get("doc_id") or row.get("source_id") or ""
@@ -219,6 +228,7 @@ def _map_legal_doc_csv(row: dict[str, Any]) -> dict[str, Any]:
 # Flow
 # -----------------------------------------------------------------------------
 
+
 @flow(name="legal-ingestion-flow")
 async def legal_ingestion_flow(
     file_path: str = "data/samples/legal_documents.csv",
@@ -242,7 +252,10 @@ async def legal_ingestion_flow(
 
         with pipeline_duration.labels(pipeline="legal_ingestion", stage="normalize").time():
             valid, rejected = normalize_and_validate(
-                batches, kind="document", pipeline="legal_ingestion", rules_path=rules_path,
+                batches,
+                kind="document",
+                pipeline="legal_ingestion",
+                rules_path=rules_path,
             )
 
         if rejected:
@@ -266,4 +279,5 @@ async def legal_ingestion_flow(
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(legal_ingestion_flow())

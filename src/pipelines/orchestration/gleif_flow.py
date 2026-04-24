@@ -7,12 +7,12 @@ Flow:
     4. Persist rejects to Quarantine
     5. Upsert into counterparties + apply SCD2 on dim_counterparty
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
 
-import polars as pl
 from prefect import flow, get_run_logger, task
 
 from src.config import get_settings
@@ -28,9 +28,7 @@ configure_logging()
 
 
 @task(retries=3, retry_delay_seconds=30, log_prints=True)
-async def extract_gleif(
-    country_code: str | None, max_pages: int
-) -> list[ExtractBatch]:
+async def extract_gleif(country_code: str | None, max_pages: int) -> list[ExtractBatch]:
     extractor = GleifExtractor(
         GleifConfig(
             country_code=country_code,
@@ -58,8 +56,7 @@ def persist_bronze(batches: list[ExtractBatch]) -> str:
     path = ""
     for b in batches:
         enriched = [
-            {**r, "_batch_id": b.batch_id, "_extracted_at": b.extracted_at}
-            for r in b.records
+            {**r, "_batch_id": b.batch_id, "_extracted_at": b.extracted_at} for r in b.records
         ]
         path = loader.write(enriched, ingestion_date=date.today())
     return path
@@ -92,14 +89,16 @@ async def upsert_counterparties(records: list[dict[str, Any]]) -> int:
         )
         rows = []
         for r in records:
-            rows.append({
-                "external_id": r["external_id"],
-                "name": r["name"],
-                "tax_id": r.get("tax_id"),
-                "country_code": r["country_code"],
-                "risk_score": r.get("risk_score"),
-                "metadata": r.get("metadata", {}),
-            })
+            rows.append(
+                {
+                    "external_id": r["external_id"],
+                    "name": r["name"],
+                    "tax_id": r.get("tax_id"),
+                    "country_code": r["country_code"],
+                    "risk_score": r.get("risk_score"),
+                    "metadata": r.get("metadata", {}),
+                }
+            )
         return await loader.upsert_via_staging(
             rows,
             conflict_columns=["external_id"],
@@ -118,7 +117,14 @@ async def apply_scd2(records: list[dict[str, Any]]) -> dict[str, int]:
                 table="dim_counterparty",
                 natural_key="external_id",
                 tracked_fields=["name", "tax_id", "country_code", "attributes"],
-                insert_fields=["external_id", "name", "tax_id", "country_code", "risk_score", "attributes"],
+                insert_fields=[
+                    "external_id",
+                    "name",
+                    "tax_id",
+                    "country_code",
+                    "risk_score",
+                    "attributes",
+                ],
             ),
         )
         for r in records:
@@ -169,4 +175,5 @@ async def gleif_ingestion_flow(
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(gleif_ingestion_flow())

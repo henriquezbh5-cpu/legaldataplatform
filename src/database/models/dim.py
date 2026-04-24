@@ -4,12 +4,14 @@ SCD2 preserves historical state by maintaining multiple versions of a row
 with valid_from / valid_to / is_current flags. This allows point-in-time
 queries: "what was this counterparty's risk score as of 2024-06-01?"
 """
+
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, Date, DateTime, Index, Numeric, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.models.base import Base
@@ -42,7 +44,8 @@ class DimCounterparty(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "external_id", "valid_from",
+            "external_id",
+            "valid_from",
             name="uq_dim_counterparty_version",
         ),
         Index(
@@ -52,7 +55,9 @@ class DimCounterparty(Base):
         ),
         Index(
             "ix_dim_counterparty_valid_range",
-            "external_id", "valid_from", "valid_to",
+            "external_id",
+            "valid_from",
+            "valid_to",
         ),
     )
 

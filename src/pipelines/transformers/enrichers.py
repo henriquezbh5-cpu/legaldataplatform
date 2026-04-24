@@ -1,4 +1,5 @@
 """Enrichers: derive additional fields from normalized records."""
+
 from __future__ import annotations
 
 import hashlib
@@ -49,7 +50,5 @@ def enrich_commercial(record: dict[str, Any]) -> dict[str, Any]:
     enriched = dict(record)
     if "risk_score" in enriched:
         enriched.setdefault("metadata", {})
-        enriched["metadata"]["risk_tier"] = risk_tier_from_score(
-            enriched.get("risk_score")
-        )
+        enriched["metadata"]["risk_tier"] = risk_tier_from_score(enriched.get("risk_score"))
     return enriched

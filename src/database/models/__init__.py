@@ -7,6 +7,7 @@ Organized by domain:
     - dim:        Dimension tables (SCD2)
     - staging:    Landing tables for raw ingestion
 """
+
 from src.database.models.base import Base, TimestampMixin
 from src.database.models.commercial import Contract, Counterparty, Transaction
 from src.database.models.dim import DimCounterparty, DimJurisdiction

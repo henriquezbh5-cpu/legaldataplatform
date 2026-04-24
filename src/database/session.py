@@ -8,6 +8,7 @@ Using PgBouncer in transaction pooling mode requires avoiding session-level
 features (SET, prepared statements), which SQLAlchemy handles correctly
 when `statement_cache_size=0` is set on the asyncpg driver.
 """
+
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 

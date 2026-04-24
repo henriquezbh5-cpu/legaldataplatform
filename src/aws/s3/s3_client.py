@@ -6,6 +6,7 @@ Centralizing S3 access here lets us:
 - Add tracing / metrics in one place
 - Mock the client cleanly for unit tests (via moto)
 """
+
 from __future__ import annotations
 
 from contextlib import asynccontextmanager

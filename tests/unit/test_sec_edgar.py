@@ -2,6 +2,7 @@
 
 Uses httpx.MockTransport to avoid hitting the real SEC API during CI.
 """
+
 from __future__ import annotations
 
 from datetime import date
@@ -29,14 +30,14 @@ FAKE_SUBMISSIONS_AAPL = {
     "filings": {
         "recent": {
             "accessionNumber": ["0000320193-24-000123", "0000320193-24-000089"],
-            "filingDate":      ["2024-11-01", "2024-08-02"],
-            "reportDate":      ["2024-09-28", "2024-06-29"],
-            "form":            ["10-K", "10-Q"],
+            "filingDate": ["2024-11-01", "2024-08-02"],
+            "reportDate": ["2024-09-28", "2024-06-29"],
+            "form": ["10-K", "10-Q"],
             "primaryDocument": ["aapl-20240928.htm", "aapl-20240629.htm"],
             "primaryDocDescription": ["Annual Report", "Quarterly Report"],
-            "size":            [12_000_000, 8_500_000],
+            "size": [12_000_000, 8_500_000],
         }
-    }
+    },
 }
 
 FAKE_SUBMISSIONS_MSFT = {
@@ -44,19 +45,20 @@ FAKE_SUBMISSIONS_MSFT = {
     "filings": {
         "recent": {
             "accessionNumber": ["0000789019-24-000345"],
-            "filingDate":      ["2024-10-24"],
-            "reportDate":      ["2024-09-30"],
-            "form":            ["10-Q"],
+            "filingDate": ["2024-10-24"],
+            "reportDate": ["2024-09-30"],
+            "form": ["10-Q"],
             "primaryDocument": ["msft-20240930.htm"],
             "primaryDocDescription": ["Quarterly Report"],
-            "size":            [9_200_000],
+            "size": [9_200_000],
         }
-    }
+    },
 }
 
 
 def make_mock_transport() -> httpx.MockTransport:
     """Build a transport that returns canned SEC responses."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
         if "company_tickers.json" in url:
@@ -66,6 +68,7 @@ def make_mock_transport() -> httpx.MockTransport:
         if "CIK0000789019.json" in url:
             return httpx.Response(200, json=FAKE_SUBMISSIONS_MSFT)
         return httpx.Response(404)
+
     return httpx.MockTransport(handler)
 
 
@@ -74,7 +77,7 @@ def config() -> SecEdgarConfig:
     return SecEdgarConfig(
         user_agent="Test/1.0 (test@example.com)",
         max_companies=2,
-        max_rps=100,   # high for tests to not add latency
+        max_rps=100,  # high for tests to not add latency
         batch_size=10,
         source_name="sec_edgar_test",
     )
@@ -99,7 +102,7 @@ async def test_extractor_yields_normalized_filings(config, monkeypatch):
         batches.append(b)
 
     all_records = [r for b in batches for r in b.records]
-    assert len(all_records) == 3   # 2 AAPL + 1 MSFT
+    assert len(all_records) == 3  # 2 AAPL + 1 MSFT
 
     aapl_10k = next(r for r in all_records if r["metadata"]["form"] == "10-K")
     assert aapl_10k["source_system"] == "sec_edgar"
@@ -108,16 +111,14 @@ async def test_extractor_yields_normalized_filings(config, monkeypatch):
     assert aapl_10k["document_date"] == date(2024, 11, 1)
     assert aapl_10k["metadata"]["ticker"] == "AAPL"
     assert aapl_10k["metadata"]["cik"] == 320193
-    assert len(aapl_10k["source_hash"]) == 64   # SHA-256 hex
+    assert len(aapl_10k["source_hash"]) == 64  # SHA-256 hex
     assert "aapl" in aapl_10k["tags"]
     assert "10-k" in aapl_10k["tags"]
 
 
 def test_config_rejects_user_agent_without_email():
     with pytest.raises(ValueError, match="contact email"):
-        SecEdgarExtractor(
-            SecEdgarConfig(user_agent="NoEmailHere/1.0", max_companies=1)
-        )
+        SecEdgarExtractor(SecEdgarConfig(user_agent="NoEmailHere/1.0", max_companies=1))
 
 
 def test_form_to_type_mapping_covers_major_forms():
@@ -194,4 +195,4 @@ async def test_deterministic_source_hash(config, monkeypatch):
     first = await collect_hashes()
     second = await collect_hashes()
     assert first == second
-    assert len(set(first)) == len(first)   # all distinct
+    assert len(set(first)) == len(first)  # all distinct

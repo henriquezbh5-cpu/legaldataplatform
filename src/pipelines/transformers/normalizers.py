@@ -4,6 +4,7 @@ valid from rejected records.
 The "Source of Truth" principle demands that only records passing validation
 reach the curated layer. Rejected records go to quarantine with the reason.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -77,9 +78,7 @@ def _apply_schema(
     return result
 
 
-def normalize_legal(
-    kind: str, records: list[dict[str, Any]], pipeline: str
-) -> NormalizationResult:
+def normalize_legal(kind: str, records: list[dict[str, Any]], pipeline: str) -> NormalizationResult:
     """Normalize legal domain records.
 
     `kind` is one of: 'document', 'entity', 'regulation'.

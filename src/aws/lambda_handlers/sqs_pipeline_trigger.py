@@ -3,13 +3,13 @@
 Uses the Prefect REST API to create a flow run rather than importing the
 flow directly — this keeps the Lambda deployment package tiny.
 """
+
 from __future__ import annotations
 
 import json
 import os
 from typing import Any
 
-import boto3
 import httpx
 
 PREFECT_API_URL = os.environ["PREFECT_API_URL"]
@@ -18,17 +18,15 @@ PREFECT_API_KEY = os.environ.get("PREFECT_API_KEY")
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    sqs = boto3.client("sqs")
     processed: list[str] = []
     failed: list[dict[str, str]] = []
 
     for record in event.get("Records", []):
-        receipt = record["receiptHandle"]
         try:
             payload = json.loads(record["body"])
             _trigger_prefect_flow(payload)
             processed.append(record["messageId"])
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             failed.append({"itemIdentifier": record["messageId"], "reason": str(e)})
 
     # Partial batch response — SQS only re-sends failed items

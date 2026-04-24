@@ -1,4 +1,5 @@
 """Commercial domain models: contracts, counterparties, transactions."""
+
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -13,7 +14,8 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.models.base import Base, TimestampMixin
@@ -108,7 +110,9 @@ class Transaction(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint(
-            "source_system", "reference", "transaction_date",
+            "source_system",
+            "reference",
+            "transaction_date",
             name="uq_transaction_source_ref",
         ),
         CheckConstraint("amount <> 0", name="ck_transaction_amount_nonzero"),

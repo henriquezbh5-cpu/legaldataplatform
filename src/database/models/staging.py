@@ -4,11 +4,13 @@ Staging tables are unlogged (UNLOGGED) for faster writes since data is
 transient — if lost, we re-ingest from the Bronze S3 layer. Production DDL
 sets UNLOGGED via migration.
 """
+
 from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, Index, String, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.database.models.base import Base
@@ -27,9 +29,7 @@ class StagingLegalDocument(Base):
     extracted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     processed: Mapped[bool] = mapped_column(default=False, nullable=False)
 
-    __table_args__ = (
-        Index("ix_stg_legal_batch_processed", "batch_id", "processed"),
-    )
+    __table_args__ = (Index("ix_stg_legal_batch_processed", "batch_id", "processed"),)
 
 
 class StagingTransaction(Base):
@@ -44,6 +44,4 @@ class StagingTransaction(Base):
     extracted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     processed: Mapped[bool] = mapped_column(default=False, nullable=False)
 
-    __table_args__ = (
-        Index("ix_stg_txn_batch_processed", "batch_id", "processed"),
-    )
+    __table_args__ = (Index("ix_stg_txn_batch_processed", "batch_id", "processed"),)

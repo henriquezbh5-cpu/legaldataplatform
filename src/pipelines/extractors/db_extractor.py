@@ -3,6 +3,7 @@
 Watermark-based extraction ensures idempotency: we only fetch rows newer
 than the last successful run. The watermark is stored in a dedicated table.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -81,9 +82,9 @@ class PostgresExtractor(Extractor):
                     records=buffer,
                     attributes={"watermark_column": self.watermark_column},
                 )
-                records_extracted.labels(
-                    source=self.source_system, pipeline=self.source_name
-                ).inc(batch.size)
+                records_extracted.labels(source=self.source_system, pipeline=self.source_name).inc(
+                    batch.size
+                )
                 yield batch
                 buffer = []
 
@@ -97,9 +98,9 @@ class PostgresExtractor(Extractor):
                     "new_watermark": str(max_watermark),
                 },
             )
-            records_extracted.labels(
-                source=self.source_system, pipeline=self.source_name
-            ).inc(batch.size)
+            records_extracted.labels(source=self.source_system, pipeline=self.source_name).inc(
+                batch.size
+            )
             yield batch
 
         logger.info(
@@ -109,31 +110,34 @@ class PostgresExtractor(Extractor):
         )
 
 
-async def get_watermark(
-    session: AsyncSession, pipeline_name: str, default: datetime
-) -> datetime:
+async def get_watermark(session: AsyncSession, pipeline_name: str, default: datetime) -> datetime:
     """Fetch last watermark for a given pipeline."""
-    await session.execute(text("""
+    await session.execute(
+        text("""
         CREATE TABLE IF NOT EXISTS pipeline_watermarks (
             pipeline_name TEXT PRIMARY KEY,
             watermark TIMESTAMPTZ NOT NULL,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )
-    """))
-    row = (await session.execute(
-        text("SELECT watermark FROM pipeline_watermarks WHERE pipeline_name = :n"),
-        {"n": pipeline_name},
-    )).first()
+    """)
+    )
+    row = (
+        await session.execute(
+            text("SELECT watermark FROM pipeline_watermarks WHERE pipeline_name = :n"),
+            {"n": pipeline_name},
+        )
+    ).first()
     return row[0] if row else default
 
 
-async def set_watermark(
-    session: AsyncSession, pipeline_name: str, watermark: datetime
-) -> None:
+async def set_watermark(session: AsyncSession, pipeline_name: str, watermark: datetime) -> None:
     """Upsert watermark for a pipeline."""
-    await session.execute(text("""
+    await session.execute(
+        text("""
         INSERT INTO pipeline_watermarks (pipeline_name, watermark)
         VALUES (:n, :wm)
         ON CONFLICT (pipeline_name)
         DO UPDATE SET watermark = EXCLUDED.watermark, updated_at = now()
-    """), {"n": pipeline_name, "wm": watermark})
+    """),
+        {"n": pipeline_name, "wm": watermark},
+    )

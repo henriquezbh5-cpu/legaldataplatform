@@ -1,4 +1,5 @@
 """S3 Parquet extractor — reads from the Bronze data lake layer."""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -41,7 +42,9 @@ class S3ParquetExtractor(Extractor):
         fs = s3fs.S3FileSystem(
             key=settings.aws.access_key_id,
             secret=settings.aws.secret_access_key,
-            client_kwargs={"endpoint_url": settings.aws.s3_endpoint} if settings.aws.s3_endpoint else {},
+            client_kwargs={"endpoint_url": settings.aws.s3_endpoint}
+            if settings.aws.s3_endpoint
+            else {},
         )
 
         path = f"{self.bucket}/{self.key}"
@@ -60,7 +63,7 @@ class S3ParquetExtractor(Extractor):
                     records=records,
                     attributes={"s3_path": path},
                 )
-                records_extracted.labels(
-                    source=self.source_system, pipeline=self.source_name
-                ).inc(extract_batch.size)
+                records_extracted.labels(source=self.source_system, pipeline=self.source_name).inc(
+                    extract_batch.size
+                )
                 yield extract_batch

@@ -43,6 +43,7 @@ src/
 ├── data_quality/       YAML rules + Great Expectations integration
 ├── aws/                S3 client, Lambda handlers, Glue jobs
 └── observability/      Logs, metrics
+.github/workflows/      CI (lint + tests + security + Docker build)
 infra/
 ├── terraform/          S3, SQS, Lambda, Glue, Aurora Serverless
 ├── docker/             Prometheus config

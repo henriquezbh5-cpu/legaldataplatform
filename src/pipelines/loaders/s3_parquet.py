@@ -8,6 +8,7 @@ Parquet is the de-facto analytical columnar format:
 
 Partitioning by ingestion_date gives time-based pruning downstream.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -47,9 +48,7 @@ class S3ParquetLoader:
             key=settings.aws.access_key_id,
             secret=settings.aws.secret_access_key,
             client_kwargs=(
-                {"endpoint_url": settings.aws.s3_endpoint}
-                if settings.aws.s3_endpoint
-                else {}
+                {"endpoint_url": settings.aws.s3_endpoint} if settings.aws.s3_endpoint else {}
             ),
         )
 

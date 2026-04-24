@@ -3,10 +3,11 @@
 Pydantic Settings reads from environment variables and .env files with
 type-safe validation, eliminating runtime config errors.
 """
+
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, PostgresDsn, computed_field
+from pydantic import Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

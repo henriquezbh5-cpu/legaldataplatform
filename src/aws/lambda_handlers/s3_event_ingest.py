@@ -13,6 +13,7 @@ Entrypoint:
 
 Expected event shape: standard S3 Event Notification.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,20 +39,24 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         if not (bucket and key):
             continue
 
-        messages.append({
-            "Id": f"{bucket}-{len(messages)}",
-            "MessageBody": json.dumps({
-                "bucket": bucket,
-                "key": key,
-                "size": size,
-                "event_name": record.get("eventName"),
-                "event_time": record.get("eventTime"),
-            }),
-            "MessageAttributes": {
-                "bucket": {"DataType": "String", "StringValue": bucket},
-                "source": {"DataType": "String", "StringValue": "s3-event"},
-            },
-        })
+        messages.append(
+            {
+                "Id": f"{bucket}-{len(messages)}",
+                "MessageBody": json.dumps(
+                    {
+                        "bucket": bucket,
+                        "key": key,
+                        "size": size,
+                        "event_name": record.get("eventName"),
+                        "event_time": record.get("eventTime"),
+                    }
+                ),
+                "MessageAttributes": {
+                    "bucket": {"DataType": "String", "StringValue": bucket},
+                    "source": {"DataType": "String", "StringValue": "s3-event"},
+                },
+            }
+        )
 
     sent = 0
     for i in range(0, len(messages), MAX_BATCH):

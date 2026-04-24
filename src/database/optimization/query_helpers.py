@@ -6,6 +6,7 @@ Provides helpers to:
     - Compute table bloat estimates
     - Auto-run VACUUM/ANALYZE
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -36,9 +37,7 @@ class QueryPlan:
 
 async def explain_analyze(session: AsyncSession, query: str) -> QueryPlan:
     """Run EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) and return parsed plan."""
-    result = await session.execute(
-        text(f"EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) {query}")
-    )
+    result = await session.execute(text(f"EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) {query}"))
     rows = result.scalar_one()
     node = rows[0]
 
@@ -55,9 +54,7 @@ async def explain_analyze(session: AsyncSession, query: str) -> QueryPlan:
     )
 
 
-async def top_slow_queries(
-    session: AsyncSession, limit: int = 20
-) -> list[dict[str, Any]]:
+async def top_slow_queries(session: AsyncSession, limit: int = 20) -> list[dict[str, Any]]:
     """Return top N slowest queries from pg_stat_statements."""
     sql = text("""
         SELECT

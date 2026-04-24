@@ -1,4 +1,5 @@
 """Tests for the normalization pipeline stage."""
+
 from __future__ import annotations
 
 from datetime import date

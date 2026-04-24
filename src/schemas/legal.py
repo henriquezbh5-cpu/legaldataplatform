@@ -3,6 +3,7 @@
 Validators enforce normalization rules at ingestion time so invalid data
 never reaches the silver/gold layer. This is the first quality gate.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -10,9 +11,10 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
-
 TaxID = Annotated[str, StringConstraints(min_length=5, max_length=50, strip_whitespace=True)]
-Jurisdiction = Annotated[str, StringConstraints(min_length=2, max_length=100, strip_whitespace=True)]
+Jurisdiction = Annotated[
+    str, StringConstraints(min_length=2, max_length=100, strip_whitespace=True)
+]
 
 
 class LegalEntitySchema(BaseModel):
@@ -53,7 +55,7 @@ class LegalDocumentSchema(BaseModel):
     title: Annotated[str, Field(min_length=1, max_length=1000)]
     content: str | None = None
     jurisdiction: Jurisdiction
-    entity_tax_id: str | None = None   # Resolved to entity_id during transform
+    entity_tax_id: str | None = None  # Resolved to entity_id during transform
     tags: list[str] = Field(default_factory=list)
     metadata_: dict = Field(default_factory=dict, alias="metadata")
     ingested_at: datetime = Field(default_factory=datetime.utcnow)

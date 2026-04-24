@@ -10,6 +10,7 @@ In both cases we create a dedicated test database per session, run migrations,
 and tear it down at the end. This keeps tests isolated from the dev database
 and makes them safe to run concurrently in CI.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -21,7 +22,6 @@ import asyncpg
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 
 PG_HOST = os.environ.get("POSTGRES_HOST", "localhost")
 PG_PORT = int(os.environ.get("POSTGRES_PORT", "5432"))
@@ -72,6 +72,7 @@ async def test_db_name() -> AsyncIterator[str]:
 async def applied_migrations(test_db_name: str) -> str:
     """Apply Alembic migrations to the test database."""
     import subprocess
+
     env = os.environ.copy()
     env["POSTGRES_DB"] = test_db_name
     result = subprocess.run(
@@ -95,7 +96,7 @@ async def db_session(applied_migrations: str) -> AsyncIterator[AsyncSession]:
     up what they insert, or use unique identifiers to avoid collisions).
     """
     engine = create_async_engine(_async_dsn(applied_migrations), pool_pre_ping=True)
-    SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
-    async with SessionFactory() as session:
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with session_factory() as session:
         yield session
     await engine.dispose()

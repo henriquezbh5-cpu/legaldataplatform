@@ -1,4 +1,5 @@
 """Integration tests for the SCD Type 2 handler against real PostgreSQL."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -22,25 +23,34 @@ async def scd2_handler(db_session):
             table="dim_counterparty",
             natural_key="external_id",
             tracked_fields=["name", "country_code", "risk_score"],
-            insert_fields=["external_id", "name", "tax_id", "country_code",
-                          "risk_score", "attributes"],
+            insert_fields=[
+                "external_id",
+                "name",
+                "tax_id",
+                "country_code",
+                "risk_score",
+                "attributes",
+            ],
         ),
     )
 
 
 async def _count_versions(db_session, external_id: str) -> int:
-    result = await db_session.execute(text(
-        "SELECT count(*) FROM dim_counterparty WHERE external_id = :eid"
-    ), {"eid": external_id})
+    result = await db_session.execute(
+        text("SELECT count(*) FROM dim_counterparty WHERE external_id = :eid"), {"eid": external_id}
+    )
     return result.scalar_one()
 
 
 async def _current_version(db_session, external_id: str) -> dict | None:
-    result = await db_session.execute(text("""
+    result = await db_session.execute(
+        text("""
         SELECT external_id, name, country_code, risk_score, valid_from, valid_to, is_current
         FROM dim_counterparty
         WHERE external_id = :eid AND is_current = true
-    """), {"eid": external_id})
+    """),
+        {"eid": external_id},
+    )
     row = result.first()
     return dict(row._mapping) if row else None
 
@@ -100,13 +110,15 @@ async def test_changed_record_expires_old_and_inserts_new(db_session, scd2_handl
     assert await _count_versions(db_session, "CP-NEW-3") == 2
 
     # The old row should be expired (is_current=false, valid_to = day before)
-    old = await db_session.execute(text("""
+    old = await db_session.execute(
+        text("""
         SELECT is_current, valid_to FROM dim_counterparty
         WHERE external_id = 'CP-NEW-3' AND risk_score = 30.00
-    """))
+    """)
+    )
     old_row = old.first()
     assert old_row[0] is False
-    assert old_row[1] == date(2025, 6, 14)   # day before effective_date
+    assert old_row[1] == date(2025, 6, 14)  # day before effective_date
 
     # The new row should be current
     current = await _current_version(db_session, "CP-NEW-3")
@@ -136,19 +148,25 @@ async def test_point_in_time_query_returns_version_at_date(db_session, scd2_hand
     )
 
     # "What was the risk score on 2025-03-15?" → should be 10
-    result = await db_session.execute(text("""
+    result = await db_session.execute(
+        text("""
         SELECT risk_score FROM dim_counterparty
         WHERE external_id = 'CP-PIT'
           AND :query_date BETWEEN valid_from AND valid_to
-    """), {"query_date": date(2025, 3, 15)})
+    """),
+        {"query_date": date(2025, 3, 15)},
+    )
     assert float(result.scalar_one()) == 10.00
 
     # "On 2025-07-20?" → 40
-    result = await db_session.execute(text("""
+    result = await db_session.execute(
+        text("""
         SELECT risk_score FROM dim_counterparty
         WHERE external_id = 'CP-PIT'
           AND :query_date BETWEEN valid_from AND valid_to
-    """), {"query_date": date(2025, 7, 20)})
+    """),
+        {"query_date": date(2025, 7, 20)},
+    )
     assert float(result.scalar_one()) == 40.00
 
     # "Today (current)?" → 90

@@ -11,6 +11,7 @@ Usage:
     export SEC_USER_AGENT="LegalDataPlatform/0.1 (yourname@example.com)"
     python -m src.pipelines.orchestration.sec_edgar_flow
 """
+
 from __future__ import annotations
 
 import os
@@ -115,9 +116,17 @@ async def load_filings(records: list[dict[str, Any]]) -> int:
         r.setdefault("metadata", {})
 
     columns = [
-        "document_date", "source_system", "source_id", "source_hash",
-        "document_type", "title", "content", "jurisdiction", "tags",
-        "metadata", "ingested_at",
+        "document_date",
+        "source_system",
+        "source_id",
+        "source_hash",
+        "document_type",
+        "title",
+        "content",
+        "jurisdiction",
+        "tags",
+        "metadata",
+        "ingested_at",
     ]
     filtered = [{k: r.get(k) for k in columns} for r in records]
 
@@ -193,7 +202,6 @@ async def sec_edgar_ingestion_flow(
     since_date = date.today() - timedelta(days=since_days)
 
     with pipeline_duration.labels(pipeline="sec_edgar_ingestion", stage="total").time():
-
         with pipeline_duration.labels(pipeline="sec_edgar_ingestion", stage="extract").time():
             batches = await extract_sec_filings(ua, max_companies, form_types, since_date)
 
@@ -228,4 +236,5 @@ async def sec_edgar_ingestion_flow(
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(sec_edgar_ingestion_flow())

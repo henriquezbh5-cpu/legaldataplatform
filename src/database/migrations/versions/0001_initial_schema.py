@@ -11,16 +11,17 @@ Creates the full schema including:
 - Partitioning on high-volume tables
 - Full-text and GIN indexes
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "0001"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -38,8 +39,12 @@ def upgrade() -> None:
     # -------------------------------------------------------------------------
     op.create_table(
         "legal_entities",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("tax_id", sa.String(50), nullable=False),
         sa.Column("legal_name", sa.String(500), nullable=False),
         sa.Column("entity_type", sa.String(50), nullable=False),
@@ -47,10 +52,18 @@ def upgrade() -> None:
         sa.Column("registration_date", sa.Date),
         sa.Column("status", sa.String(20), nullable=False, server_default="ACTIVE"),
         sa.Column("metadata", postgresql.JSONB, nullable=False, server_default="{}"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.UniqueConstraint("tax_id", "jurisdiction", name="uq_entity_tax_jurisdiction"),
     )
     op.create_index("ix_legal_entities_tax_id", "legal_entities", ["tax_id"])
@@ -84,12 +97,13 @@ def upgrade() -> None:
                 UNIQUE (source_system, source_id, document_date)
         ) PARTITION BY RANGE (document_date);
     """)
-    op.execute("CREATE INDEX ix_legal_doc_date_type ON legal_documents (document_date, document_type)")
+    op.execute(
+        "CREATE INDEX ix_legal_doc_date_type ON legal_documents (document_date, document_type)"
+    )
     op.execute("CREATE INDEX ix_legal_doc_hash ON legal_documents (source_hash)")
     op.execute("CREATE INDEX ix_legal_doc_entity ON legal_documents (entity_id)")
     op.execute(
-        "CREATE INDEX ix_legal_doc_title_gin ON legal_documents "
-        "USING GIN (title gin_trgm_ops)"
+        "CREATE INDEX ix_legal_doc_title_gin ON legal_documents USING GIN (title gin_trgm_ops)"
     )
     op.execute("CREATE INDEX ix_legal_doc_tags_gin ON legal_documents USING GIN (tags)")
     op.execute(
@@ -102,8 +116,12 @@ def upgrade() -> None:
     # -------------------------------------------------------------------------
     op.create_table(
         "regulations",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("code", sa.String(100), nullable=False),
         sa.Column("title", sa.String(500), nullable=False),
         sa.Column("jurisdiction", sa.String(100), nullable=False),
@@ -112,10 +130,18 @@ def upgrade() -> None:
         sa.Column("category", sa.String(100), nullable=False),
         sa.Column("content", sa.Text),
         sa.Column("metadata", postgresql.JSONB, nullable=False, server_default="{}"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.UniqueConstraint("code", "jurisdiction", name="uq_regulation_code_jurisdiction"),
     )
     op.create_index(
@@ -129,18 +155,30 @@ def upgrade() -> None:
     # -------------------------------------------------------------------------
     op.create_table(
         "counterparties",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("external_id", sa.String(100), nullable=False),
         sa.Column("name", sa.String(500), nullable=False),
         sa.Column("tax_id", sa.String(50)),
         sa.Column("country_code", sa.String(2), nullable=False),
         sa.Column("risk_score", sa.Numeric(5, 2)),
         sa.Column("metadata", postgresql.JSONB, nullable=False, server_default="{}"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.UniqueConstraint("external_id", name="uq_counterparty_external_id"),
         sa.CheckConstraint("risk_score BETWEEN 0 AND 100", name="ck_counterparty_risk_range"),
     )
@@ -156,21 +194,37 @@ def upgrade() -> None:
     # -------------------------------------------------------------------------
     op.create_table(
         "contracts",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("contract_number", sa.String(100), nullable=False),
-        sa.Column("counterparty_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("counterparties.id"), nullable=False),
+        sa.Column(
+            "counterparty_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("counterparties.id"),
+            nullable=False,
+        ),
         sa.Column("start_date", sa.Date, nullable=False),
         sa.Column("end_date", sa.Date),
         sa.Column("total_value", sa.Numeric(18, 2), nullable=False),
         sa.Column("currency", sa.String(3), nullable=False),
         sa.Column("status", sa.String(20), nullable=False, server_default="DRAFT"),
         sa.Column("metadata", postgresql.JSONB, nullable=False, server_default="{}"),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.UniqueConstraint("contract_number", name="uq_contract_number"),
         sa.CheckConstraint("total_value >= 0", name="ck_contract_value_positive"),
         sa.CheckConstraint(
@@ -185,8 +239,7 @@ def upgrade() -> None:
         ["status", "start_date", "end_date"],
     )
     op.execute(
-        "CREATE INDEX ix_contract_active ON contracts (counterparty_id) "
-        "WHERE status = 'ACTIVE'"
+        "CREATE INDEX ix_contract_active ON contracts (counterparty_id) WHERE status = 'ACTIVE'"
     )
 
     # -------------------------------------------------------------------------
@@ -213,7 +266,9 @@ def upgrade() -> None:
             CONSTRAINT ck_transaction_amount_nonzero CHECK (amount <> 0)
         ) PARTITION BY RANGE (transaction_date);
     """)
-    op.execute("CREATE INDEX ix_txn_counterparty_date ON transactions (counterparty_id, transaction_date)")
+    op.execute(
+        "CREATE INDEX ix_txn_counterparty_date ON transactions (counterparty_id, transaction_date)"
+    )
     op.execute("CREATE INDEX ix_txn_contract_date ON transactions (contract_id, transaction_date)")
     op.execute(
         "CREATE INDEX ix_txn_date_brin ON transactions "
@@ -225,8 +280,12 @@ def upgrade() -> None:
     # -------------------------------------------------------------------------
     op.create_table(
         "dim_counterparty",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("external_id", sa.String(100), nullable=False),
         sa.Column("name", sa.String(500), nullable=False),
         sa.Column("tax_id", sa.String(50)),
@@ -239,7 +298,8 @@ def upgrade() -> None:
         sa.Column("row_hash", sa.String(64), nullable=False),
         sa.Column("loaded_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint(
-            "external_id", "valid_from",
+            "external_id",
+            "valid_from",
             name="uq_dim_counterparty_version",
         ),
     )

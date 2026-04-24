@@ -22,6 +22,7 @@ This extractor:
     - Maps filings to LegalDocumentSchema fields (document_type, title, etc.)
     - Computes deterministic source_hash for idempotent re-ingestion
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -76,10 +77,10 @@ FORM_TO_TYPE: dict[str, str] = {
 
 @dataclass
 class SecEdgarConfig:
-    user_agent: str                         # REQUIRED: "App/1.0 (contact@example.com)"
-    max_companies: int | None = 50          # None → all public companies
-    form_types: list[str] | None = None     # filter: ["10-K", "10-Q", "8-K"]
-    since_date: date | None = None          # only filings >= this date
+    user_agent: str  # REQUIRED: "App/1.0 (contact@example.com)"
+    max_companies: int | None = 50  # None → all public companies
+    form_types: list[str] | None = None  # filter: ["10-K", "10-Q", "8-K"]
+    since_date: date | None = None  # only filings >= this date
     max_rps: int = DEFAULT_MAX_RPS
     batch_size: int = 100
     source_name: str = "sec_edgar"
@@ -108,7 +109,6 @@ class SecEdgarExtractor(Extractor):
             headers={"User-Agent": self.config.user_agent, "Accept": "application/json"},
             timeout=30.0,
         ) as client:
-
             # Step 1: get the list of companies
             tickers = await self._fetch_tickers(client)
             if self.config.max_companies:
@@ -186,8 +186,13 @@ class SecEdgarExtractor(Extractor):
         recent = data.get("filings", {}).get("recent", {})
         # The SEC returns parallel arrays (column-oriented). Zip into records.
         columns = [
-            "accessionNumber", "filingDate", "reportDate", "form",
-            "primaryDocument", "primaryDocDescription", "size",
+            "accessionNumber",
+            "filingDate",
+            "reportDate",
+            "form",
+            "primaryDocument",
+            "primaryDocDescription",
+            "size",
         ]
         rows = []
         count = len(recent.get("accessionNumber", []))
@@ -223,7 +228,6 @@ class SecEdgarExtractor(Extractor):
         source_hash = hashlib.sha256(canonical).hexdigest()
 
         # Build a stable URL to the filing for traceability
-        cik_padded = f"{filing['cik']:010d}"
         accession_stripped = accession.replace("-", "")
         filing_url = (
             f"https://www.sec.gov/Archives/edgar/data/"
@@ -268,8 +272,8 @@ class SecEdgarExtractor(Extractor):
             records=records,
             attributes={"api": "data.sec.gov/submissions"},
         )
-        records_extracted.labels(
-            source="sec_edgar", pipeline=self.config.source_name
-        ).inc(batch.size)
+        records_extracted.labels(source="sec_edgar", pipeline=self.config.source_name).inc(
+            batch.size
+        )
         logger.info("sec_edgar.batch_ready", batch_id=batch.batch_id, size=batch.size)
         return batch

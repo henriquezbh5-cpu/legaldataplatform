@@ -13,6 +13,7 @@ Rule types supported:
     - expression        : arbitrary Polars expression returning a boolean mask
     - row_count_range   : table row count must be within a range
 """
+
 from __future__ import annotations
 
 import re
@@ -78,7 +79,7 @@ def run_rules(
     for rule in rules:
         try:
             result = _dispatch(df, rule)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             result = DQResult(
                 rule=rule,
                 passed=False,

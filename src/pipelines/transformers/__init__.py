@@ -5,6 +5,7 @@ Separation of concerns:
 - SCD handlers: detect changes and emit versioned rows
 - Enrichers: add computed fields (hashes, geo codes, risk tiers)
 """
+
 from src.pipelines.transformers.enrichers import compute_row_hash, enrich_commercial
 from src.pipelines.transformers.normalizers import (
     NormalizationResult,

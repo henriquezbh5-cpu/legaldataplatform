@@ -4,11 +4,13 @@ Legal documents cover regulations, court decisions, and legal entities
 (companies, individuals involved in cases). All documents are versioned
 via source_hash to allow idempotent re-ingestion.
 """
+
 from datetime import date, datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import Date, DateTime, ForeignKey, Index, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.models.base import Base, TimestampMixin
@@ -32,8 +34,12 @@ class LegalEntity(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint("tax_id", "jurisdiction", name="uq_entity_tax_jurisdiction"),
-        Index("ix_entity_legal_name_gin", "legal_name", postgresql_using="gin",
-              postgresql_ops={"legal_name": "gin_trgm_ops"}),
+        Index(
+            "ix_entity_legal_name_gin",
+            "legal_name",
+            postgresql_using="gin",
+            postgresql_ops={"legal_name": "gin_trgm_ops"},
+        ),
     )
 
 
@@ -65,14 +71,17 @@ class LegalDocument(Base, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint(
-            "source_system", "source_id", "document_date",
+            "source_system",
+            "source_id",
+            "document_date",
             name="uq_legal_doc_source",
         ),
         Index("ix_legal_doc_date_type", "document_date", "document_type"),
         Index("ix_legal_doc_hash", "source_hash"),
         # Full-text search index on title (using GIN trigram for partial match)
         Index(
-            "ix_legal_doc_title_gin", "title",
+            "ix_legal_doc_title_gin",
+            "title",
             postgresql_using="gin",
             postgresql_ops={"title": "gin_trgm_ops"},
         ),

@@ -10,14 +10,15 @@ Creates:
 - create_monthly_partition helper function
 - Materialized views for analytics
 """
-from typing import Sequence, Union
+
+from collections.abc import Sequence
 
 from alembic import op
 
 revision: str = "0002"
-down_revision: Union[str, None] = "0001"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "0001"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -65,13 +66,9 @@ def upgrade() -> None:
 
     # Default partitions
     op.execute(
-        "CREATE TABLE IF NOT EXISTS legal_documents_default "
-        "PARTITION OF legal_documents DEFAULT"
+        "CREATE TABLE IF NOT EXISTS legal_documents_default PARTITION OF legal_documents DEFAULT"
     )
-    op.execute(
-        "CREATE TABLE IF NOT EXISTS transactions_default "
-        "PARTITION OF transactions DEFAULT"
-    )
+    op.execute("CREATE TABLE IF NOT EXISTS transactions_default PARTITION OF transactions DEFAULT")
 
     # Materialized view: monthly revenue per counterparty
     op.execute("""

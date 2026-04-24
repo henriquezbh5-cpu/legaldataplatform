@@ -1,7 +1,6 @@
 """Integration tests against a mocked S3 (moto)."""
-from __future__ import annotations
 
-import os
+from __future__ import annotations
 
 import pytest
 from moto import mock_aws
@@ -19,10 +18,11 @@ def aws_credentials(monkeypatch):
 
 @mock_aws
 async def test_put_and_list_object():
-    from src.aws.s3 import list_keys, put_object, s3_client
-
     # Create bucket via sync boto for test setup
     import boto3
+
+    from src.aws.s3 import list_keys, put_object
+
     boto3.client("s3", region_name="us-east-1").create_bucket(Bucket="test-bucket")
 
     await put_object("test-bucket", "prefix/file.txt", b"hello", sse=None)
@@ -32,7 +32,9 @@ async def test_put_and_list_object():
 
 @mock_aws
 async def test_object_exists_returns_false_for_missing():
-    from src.aws.s3 import object_exists
     import boto3
+
+    from src.aws.s3 import object_exists
+
     boto3.client("s3", region_name="us-east-1").create_bucket(Bucket="test-bucket2")
     assert await object_exists("test-bucket2", "nope.txt") is False

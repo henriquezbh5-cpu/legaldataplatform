@@ -1,4 +1,5 @@
 """Pydantic schemas (contracts) shared across extractors, transformers, loaders."""
+
 from src.schemas.commercial import (
     ContractSchema,
     CounterpartySchema,

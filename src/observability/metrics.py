@@ -3,6 +3,7 @@
 Metrics follow the RED (Rate, Errors, Duration) method plus data-specific
 counters (records processed, quarantined, quality failures).
 """
+
 from prometheus_client import CollectorRegistry, Counter, Histogram, push_to_gateway
 
 registry = CollectorRegistry()

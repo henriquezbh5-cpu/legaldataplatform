@@ -7,17 +7,16 @@ Supports:
 - Extracts nested data via JSON path
 - Emits structured logs for every request
 """
+
 from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any, Literal
 
 import httpx
 from tenacity import (
-    RetryError,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
@@ -39,11 +38,11 @@ class RestAPIConfig:
     method: str = "GET"
     headers: dict[str, str] = field(default_factory=dict)
     query_params: dict[str, Any] = field(default_factory=dict)
-    data_path: str = "data"              # JSON path to list of records
+    data_path: str = "data"  # JSON path to list of records
     next_cursor_path: str | None = None  # JSON path to next cursor
     pagination_mode: PaginationMode = "offset"
     page_size: int = 100
-    max_pages: int | None = None         # None = unlimited
+    max_pages: int | None = None  # None = unlimited
     timeout_seconds: float = 30.0
     source_system: str = "rest_api"
     source_name: str = "default"

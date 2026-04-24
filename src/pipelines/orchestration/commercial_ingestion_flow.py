@@ -2,9 +2,10 @@
 
 Highlights SCD2 on counterparties and bulk transactional loading.
 """
+
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -12,14 +13,13 @@ import polars as pl
 from prefect import flow, get_run_logger, task
 from sqlalchemy import text
 
-from src.config import get_settings
 from src.data_quality import run_rules
 from src.data_quality.validators.rule_engine import assert_no_errors, load_rules_yaml
 from src.database.session import direct_session
 from src.observability import bind_pipeline_context, configure_logging, pipeline_duration
 from src.pipelines.extractors import CSVExtractor
 from src.pipelines.extractors.base import ExtractBatch
-from src.pipelines.loaders import PostgresBulkLoader, S3ParquetLoader
+from src.pipelines.loaders import PostgresBulkLoader
 from src.pipelines.transformers import Scd2Handler, normalize_commercial
 from src.pipelines.transformers.scd2 import Scd2Config
 
@@ -28,7 +28,9 @@ configure_logging()
 
 @task(retries=3, retry_delay_seconds=20)
 async def extract_commercial_csv(path: str, name: str) -> list[ExtractBatch]:
-    extractor = CSVExtractor(path, source_name=name, chunk_size=5000, source_system="commercial_csv")
+    extractor = CSVExtractor(
+        path, source_name=name, chunk_size=5000, source_system="commercial_csv"
+    )
     batches: list[ExtractBatch] = []
     async for b in extractor.extract():
         batches.append(b)
@@ -69,8 +71,14 @@ async def upsert_counterparties_scd2(records: list[dict[str, Any]]) -> dict[str,
                 table="dim_counterparty",
                 natural_key="external_id",
                 tracked_fields=["name", "tax_id", "country_code", "risk_score", "attributes"],
-                insert_fields=["external_id", "name", "tax_id", "country_code",
-                               "risk_score", "attributes"],
+                insert_fields=[
+                    "external_id",
+                    "name",
+                    "tax_id",
+                    "country_code",
+                    "risk_score",
+                    "attributes",
+                ],
             ),
         )
         # Map schema "metadata" alias to "attributes" expected by SCD2 config
@@ -92,8 +100,7 @@ async def bulk_upsert_counterparties(records: list[dict[str, Any]]) -> int:
             pipeline="commercial_ingestion",
         )
         filtered = [
-            {k: r.get("metadata" if k == "metadata" else k) for k in columns}
-            for r in records
+            {k: r.get("metadata" if k == "metadata" else k) for k in columns} for r in records
         ]
         return await loader.upsert_via_staging(
             filtered,
@@ -109,12 +116,12 @@ async def bulk_load_transactions(records: list[dict[str, Any]]) -> int:
     now = datetime.utcnow()
     # Resolve counterparty_id and contract_id via lookups
     async with direct_session() as session:
-        cp_map = dict((await session.execute(
-            text("SELECT external_id, id FROM counterparties")
-        )).all())
-        contract_map = dict((await session.execute(
-            text("SELECT contract_number, id FROM contracts")
-        )).all())
+        cp_map = dict(
+            (await session.execute(text("SELECT external_id, id FROM counterparties"))).all()
+        )
+        contract_map = dict(
+            (await session.execute(text("SELECT contract_number, id FROM contracts"))).all()
+        )
 
     rows = []
     skipped = 0
@@ -124,27 +131,36 @@ async def bulk_load_transactions(records: list[dict[str, Any]]) -> int:
         if not cp_id or not contract_id:
             skipped += 1
             continue
-        rows.append({
-            "transaction_date": r["transaction_date"],
-            "contract_id": contract_id,
-            "counterparty_id": cp_id,
-            "amount": r["amount"],
-            "currency": r["currency"],
-            "transaction_type": r["transaction_type"],
-            "reference": r["reference"],
-            "source_system": r["source_system"],
-            "ingested_at": now,
-            "metadata": r.get("metadata", {}),
-        })
+        rows.append(
+            {
+                "transaction_date": r["transaction_date"],
+                "contract_id": contract_id,
+                "counterparty_id": cp_id,
+                "amount": r["amount"],
+                "currency": r["currency"],
+                "transaction_type": r["transaction_type"],
+                "reference": r["reference"],
+                "source_system": r["source_system"],
+                "ingested_at": now,
+                "metadata": r.get("metadata", {}),
+            }
+        )
 
     logger = get_run_logger()
     if skipped:
         logger.warning(f"Skipped {skipped} transactions with missing FK references")
 
     columns = [
-        "transaction_date", "contract_id", "counterparty_id", "amount",
-        "currency", "transaction_type", "reference", "source_system",
-        "ingested_at", "metadata",
+        "transaction_date",
+        "contract_id",
+        "counterparty_id",
+        "amount",
+        "currency",
+        "transaction_type",
+        "reference",
+        "source_system",
+        "ingested_at",
+        "metadata",
     ]
     async with direct_session() as session:
         loader = PostgresBulkLoader(
@@ -174,10 +190,15 @@ async def commercial_ingestion_flow(
         txn_batches = await extract_commercial_csv(transactions_csv, "transactions")
 
         cp_valid = normalize_commercial_batch(
-            cp_batches, "counterparty", "commercial_ingestion", None,
+            cp_batches,
+            "counterparty",
+            "commercial_ingestion",
+            None,
         )
         txn_valid = normalize_commercial_batch(
-            txn_batches, "transaction", "commercial_ingestion",
+            txn_batches,
+            "transaction",
+            "commercial_ingestion",
             "src/data_quality/rules/transactions.yaml",
         )
 
@@ -196,4 +217,5 @@ async def commercial_ingestion_flow(
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(commercial_ingestion_flow())

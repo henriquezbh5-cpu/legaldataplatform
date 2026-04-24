@@ -3,6 +3,7 @@
 JSON-formatted logs with correlation IDs enable easy aggregation in
 CloudWatch, Datadog, or ELK without brittle regex parsing.
 """
+
 import logging
 import sys
 from typing import Any

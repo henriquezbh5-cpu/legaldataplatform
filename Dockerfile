@@ -64,7 +64,6 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY --chown=ldp:ldp src ./src
 COPY --chown=ldp:ldp alembic.ini ./
-COPY --chown=ldp:ldp config ./config
 COPY --chown=ldp:ldp scripts ./scripts
 
 USER ldp

@@ -21,13 +21,13 @@ This extractor:
     - Enriches counterparties with jurisdiction (LEI is ISO-3166 country-aware)
     - Computes deterministic hash for idempotent UPSERT
 """
+
 from __future__ import annotations
 
 import asyncio
 import hashlib
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any
 
 import httpx
@@ -44,16 +44,16 @@ from src.pipelines.extractors.base import ExtractBatch, Extractor
 logger = get_logger(__name__)
 
 GLEIF_API_BASE = "https://api.gleif.org/api/v1"
-DEFAULT_PAGE_SIZE = 200     # max supported by the API
+DEFAULT_PAGE_SIZE = 200  # max supported by the API
 
 
 @dataclass
 class GleifConfig:
-    country_code: str | None = None          # ISO-3166 alpha-2: "US", "ES", "DE"
-    entity_status: str | None = "ACTIVE"     # ACTIVE | INACTIVE | NULL (all)
-    max_pages: int | None = 10               # None = unlimited
+    country_code: str | None = None  # ISO-3166 alpha-2: "US", "ES", "DE"
+    entity_status: str | None = "ACTIVE"  # ACTIVE | INACTIVE | NULL (all)
+    max_pages: int | None = 10  # None = unlimited
     page_size: int = DEFAULT_PAGE_SIZE
-    rate_limit_rps: float = 1.0              # conservative under GLEIF's limits
+    rate_limit_rps: float = 1.0  # conservative under GLEIF's limits
     source_name: str = "gleif"
 
 
@@ -108,9 +108,9 @@ class GleifExtractor(Extractor):
                     records=normalized,
                     attributes={"page": page_number, "country": self.config.country_code},
                 )
-                records_extracted.labels(
-                    source="gleif", pipeline=self.config.source_name
-                ).inc(batch.size)
+                records_extracted.labels(source="gleif", pipeline=self.config.source_name).inc(
+                    batch.size
+                )
                 logger.info(
                     "gleif.batch_ready",
                     batch_id=batch.batch_id,
@@ -178,15 +178,17 @@ class GleifExtractor(Extractor):
         return {
             "external_id": f"LEI-{lei}",
             "name": legal_name,
-            "tax_id": lei,                        # LEI is the global identifier
+            "tax_id": lei,  # LEI is the global identifier
             "country_code": country_code.upper(),
-            "risk_score": None,                   # GLEIF doesn't provide this
+            "risk_score": None,  # GLEIF doesn't provide this
             "metadata": {
                 "lei": lei,
                 "status": entity.get("status"),
                 "legal_form": (entity.get("legalForm") or {}).get("id"),
                 "legal_jurisdiction": entity.get("jurisdiction"),
-                "registration_initial_date": (attr.get("registration") or {}).get("initialRegistrationDate"),
+                "registration_initial_date": (attr.get("registration") or {}).get(
+                    "initialRegistrationDate"
+                ),
                 "registration_last_update": (attr.get("registration") or {}).get("lastUpdateDate"),
                 "bic": entity.get("bic"),
                 "mic": entity.get("mic"),

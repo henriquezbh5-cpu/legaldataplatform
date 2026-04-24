@@ -1,4 +1,5 @@
 """Tests for the declarative DQ rule engine."""
+
 from __future__ import annotations
 
 import polars as pl
@@ -12,12 +13,14 @@ from src.data_quality.validators.rule_engine import (
 
 
 def _df():
-    return pl.DataFrame({
-        "id":        [1, 2, 3, 4, 5],
-        "email":     ["a@b.co", "no-at-sign", "c@d.co", "e@f.co", None],
-        "status":    ["ACTIVE", "INACTIVE", "ACTIVE", "PENDING", "ACTIVE"],
-        "amount":    [100, -5, 50, 200, 999999999],
-    })
+    return pl.DataFrame(
+        {
+            "id": [1, 2, 3, 4, 5],
+            "email": ["a@b.co", "no-at-sign", "c@d.co", "e@f.co", None],
+            "status": ["ACTIVE", "INACTIVE", "ACTIVE", "PENDING", "ACTIVE"],
+            "amount": [100, -5, 50, 200, 999999999],
+        }
+    )
 
 
 def test_not_null_passes_when_no_nulls():
@@ -42,10 +45,14 @@ def test_unique_flags_duplicates():
 
 
 def test_regex_fails_for_bad_email():
-    rules = [DQRule(
-        name="email_fmt", type="regex", column="email",
-        params={"pattern": r"^[^@]+@[^@]+\.[^@]+$"},
-    )]
+    rules = [
+        DQRule(
+            name="email_fmt",
+            type="regex",
+            column="email",
+            params={"pattern": r"^[^@]+@[^@]+\.[^@]+$"},
+        )
+    ]
     [r] = run_rules(_df(), rules)
     assert not r.passed
     # "no-at-sign" fails; None passes (regex check skips nulls)
@@ -53,20 +60,28 @@ def test_regex_fails_for_bad_email():
 
 
 def test_in_set_rule():
-    rules = [DQRule(
-        name="status_set", type="in_set", column="status",
-        params={"values": ["ACTIVE", "INACTIVE"]},
-    )]
+    rules = [
+        DQRule(
+            name="status_set",
+            type="in_set",
+            column="status",
+            params={"values": ["ACTIVE", "INACTIVE"]},
+        )
+    ]
     [r] = run_rules(_df(), rules)
     assert not r.passed
-    assert r.failed_count == 1   # "PENDING"
+    assert r.failed_count == 1  # "PENDING"
 
 
 def test_range_rule_catches_outliers():
-    rules = [DQRule(
-        name="amount_range", type="range", column="amount",
-        params={"min": 0, "max": 1_000_000},
-    )]
+    rules = [
+        DQRule(
+            name="amount_range",
+            type="range",
+            column="amount",
+            params={"min": 0, "max": 1_000_000},
+        )
+    ]
     [r] = run_rules(_df(), rules)
     assert not r.passed
     # -5 and 999999999
@@ -74,10 +89,14 @@ def test_range_rule_catches_outliers():
 
 
 def test_row_count_bounds():
-    rules = [DQRule(
-        name="rows", type="row_count_range",
-        params={"min": 10, "max": 100}, severity="error",
-    )]
+    rules = [
+        DQRule(
+            name="rows",
+            type="row_count_range",
+            params={"min": 10, "max": 100},
+            severity="error",
+        )
+    ]
     [r] = run_rules(_df(), rules)
     assert not r.passed
 

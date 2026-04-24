@@ -7,6 +7,7 @@ is set to the day before the change. `is_current = true` marks the latest row.
 This implementation uses a row_hash over tracked columns to detect changes
 efficiently, avoiding column-by-column comparison.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,10 +25,10 @@ logger = get_logger(__name__)
 
 @dataclass
 class Scd2Config:
-    table: str                      # e.g. "dim_counterparty"
-    natural_key: str                # e.g. "external_id"
-    tracked_fields: list[str]       # fields that trigger a new version when changed
-    insert_fields: list[str]        # all fields to insert
+    table: str  # e.g. "dim_counterparty"
+    natural_key: str  # e.g. "external_id"
+    tracked_fields: list[str]  # fields that trigger a new version when changed
+    insert_fields: list[str]  # all fields to insert
     hash_field: str = "row_hash"
 
 
@@ -98,8 +99,13 @@ class Scd2Handler:
         await self.session.execute(sql, {"nk": natural_key_value, "valid_to": valid_to})
 
     async def _insert_current(self, record: dict[str, Any], effective_date: date) -> None:
-        fields = self.config.insert_fields + [
-            "valid_from", "valid_to", "is_current", self.config.hash_field, "loaded_at",
+        fields = [
+            *self.config.insert_fields,
+            "valid_from",
+            "valid_to",
+            "is_current",
+            self.config.hash_field,
+            "loaded_at",
         ]
         placeholders = ", ".join(f":{f}" for f in fields)
         col_list = ", ".join(fields)

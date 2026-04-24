@@ -9,6 +9,7 @@ transaction overhead. For UPSERTs we use the staging-table pattern:
 
 This keeps the write path fast and atomic.
 """
+
 from __future__ import annotations
 
 import csv
@@ -74,11 +75,13 @@ class PostgresBulkLoader:
 
         staging = f"{self.table}{staging_suffix}"
 
-        await self.session.execute(text(f"""
+        await self.session.execute(
+            text(f"""
             CREATE TEMP TABLE IF NOT EXISTS {staging}
                 (LIKE {self.table} INCLUDING DEFAULTS)
                 ON COMMIT DROP
-        """))
+        """)
+        )
         await self.session.execute(text(f"TRUNCATE {staging}"))
 
         # COPY into staging
@@ -131,6 +134,7 @@ class PostgresBulkLoader:
             return ""
         if isinstance(value, (dict, list)):
             import json
+
             return json.dumps(value, default=str)
         if isinstance(value, (date, datetime)):
             return value.isoformat()

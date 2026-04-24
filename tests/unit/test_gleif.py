@@ -2,6 +2,7 @@
 
 Uses httpx.MockTransport to avoid hitting the real GLEIF API during CI.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -101,6 +102,7 @@ def make_mock_transport() -> httpx.MockTransport:
         if page == "2":
             return httpx.Response(200, json=FAKE_GLEIF_RESPONSE_PAGE_2)
         return httpx.Response(200, json={"data": [], "meta": {"pagination": {"lastPage": 2}}})
+
     return httpx.MockTransport(handler)
 
 
@@ -118,9 +120,14 @@ def patch_client(monkeypatch) -> None:
 async def test_extractor_paginates_and_normalizes(monkeypatch):
     patch_client(monkeypatch)
 
-    extractor = GleifExtractor(GleifConfig(
-        country_code="US", max_pages=5, page_size=2, rate_limit_rps=1000,
-    ))
+    extractor = GleifExtractor(
+        GleifConfig(
+            country_code="US",
+            max_pages=5,
+            page_size=2,
+            rate_limit_rps=1000,
+        )
+    )
     all_records = []
     async for batch in extractor.extract():
         all_records.extend(batch.records)
@@ -139,14 +146,19 @@ async def test_extractor_paginates_and_normalizes(monkeypatch):
 async def test_extractor_respects_max_pages(monkeypatch):
     patch_client(monkeypatch)
 
-    extractor = GleifExtractor(GleifConfig(
-        country_code="US", max_pages=1, page_size=2, rate_limit_rps=1000,
-    ))
+    extractor = GleifExtractor(
+        GleifConfig(
+            country_code="US",
+            max_pages=1,
+            page_size=2,
+            rate_limit_rps=1000,
+        )
+    )
     records = []
     async for batch in extractor.extract():
         records.extend(batch.records)
 
-    assert len(records) == 2   # only page 1
+    assert len(records) == 2  # only page 1
 
 
 async def test_extractor_skips_incomplete_records(monkeypatch):
@@ -184,7 +196,7 @@ async def test_extractor_skips_incomplete_records(monkeypatch):
     async for batch in extractor.extract():
         records.extend(batch.records)
 
-    assert records == []   # both filtered out
+    assert records == []  # both filtered out
 
 
 async def test_deterministic_source_hash(monkeypatch):
