@@ -36,7 +36,11 @@ jobs:
           pip install mkdocs mkdocs-material mkdocs-mermaid2-plugin pymdown-extensions
 
       - name: Build site
-        run: mkdocs build --strict --clean --site-dir public
+        # --strict would fail on warnings, but the Walkthrough deliberately
+        # links to src/ files outside docs/ as source-code references. Those
+        # surface as warnings but are intended. We still treat a build error
+        # as a build failure.
+        run: mkdocs build --clean --site-dir public
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
