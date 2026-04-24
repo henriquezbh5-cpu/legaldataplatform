@@ -1,4 +1,4 @@
-.PHONY: help install up down logs migrate seed test lint format pipeline benchmark clean
+.PHONY: help install up down logs migrate seed test lint format pipeline sec-edgar commercial benchmark evidence clean
 
 help:
 	@echo "LegalDataPlatform — Available commands"
@@ -9,11 +9,14 @@ help:
 	@echo "  make logs          Tail all container logs"
 	@echo "  make migrate       Apply Alembic migrations"
 	@echo "  make seed          Load sample data"
-	@echo "  make pipeline      Run the legal ingestion pipeline end-to-end"
+	@echo "  make pipeline      Run the legal ingestion pipeline (CSV source)"
+	@echo "  make sec-edgar     Run the SEC EDGAR ingestion flow (real source)"
+	@echo "  make commercial    Run the commercial ingestion flow"
 	@echo "  make test          Run test suite"
 	@echo "  make lint          Lint code with ruff + mypy"
 	@echo "  make format        Format code with ruff"
 	@echo "  make benchmark     Run query benchmark suite"
+	@echo "  make evidence      Capture env + benchmarks into docs/evidence/"
 	@echo "  make clean         Remove build artifacts"
 
 install:
@@ -37,6 +40,12 @@ seed:
 pipeline:
 	python -m src.pipelines.orchestration.legal_ingestion_flow
 
+sec-edgar:
+	python -m src.pipelines.orchestration.sec_edgar_flow
+
+commercial:
+	python -m src.pipelines.orchestration.commercial_ingestion_flow
+
 test:
 	pytest
 
@@ -50,6 +59,11 @@ format:
 
 benchmark:
 	python scripts/benchmarks/query_benchmark.py
+
+evidence:
+	python scripts/capture_env.py > docs/evidence/env.md
+	python scripts/capture_benchmarks.py > docs/evidence/benchmarks.md
+	@echo "Evidence files updated. Remember to take screenshots per docs/evidence/README.md."
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +

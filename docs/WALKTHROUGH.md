@@ -2,6 +2,8 @@
 
 Este documento explica **qué se implementó, en qué orden, y por qué se tomó cada decisión**. Está diseñado para defender en una entrevista técnica y para que cualquier ingeniero nuevo al proyecto pueda entender el sistema en 30 minutos.
 
+> **Nota sobre los números.** Donde el texto menciona throughput, latencias o ratios de cache hit, los valores son estimaciones basadas en patrones conocidos de PostgreSQL y Python. Los valores medidos en la máquina específica de despliegue se registran en [docs/evidence/benchmarks.md](evidence/benchmarks.md) tras ejecutar `python scripts/capture_benchmarks.py`. Para una fuente real de datos legales, `src/pipelines/extractors/sec_edgar.py` ingesta filings reales del SEC EDGAR API.
+
 ---
 
 ## Índice
@@ -516,7 +518,7 @@ make test
 
 **Decisión**: COPY vía asyncpg + UPSERT desde temp staging.
 
-**Benchmarks**: INSERT ~1K rows/s vs COPY ~150K rows/s en hardware comparable → 100-150×.
+**Benchmarks** (orden de magnitud, no medidos en esta máquina todavía — ver [docs/evidence/benchmarks.md](evidence/benchmarks.md)): INSERT típicamente ~1K rows/s vs COPY en el rango 50–200K rows/s según hardware, índices y WAL config. El multiplicador 50–100× es lo que importa para defender la decisión arquitectónica.
 
 ### ADR-006: SCD Type 2 sobre counterparties, Type 1 sobre jurisdictions
 

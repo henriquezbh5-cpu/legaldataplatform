@@ -1,223 +1,113 @@
 # LegalDataPlatform
 
-**Plataforma de datos escalable para ingesta, normalización y análisis de información legal y comercial.**
+ETL/ELT platform for legal and commercial data. Python 3.11+, PostgreSQL 16, AWS (S3, Lambda, Glue), Docker.
 
-Construido con Python 3.11+, AWS, PostgreSQL 16, Docker y patrones modernos de Data Engineering (ETL/ELT, Medallion Architecture, Data Quality-as-Code).
+## Requirements addressed
 
----
+- **Scalable ETL/ELT pipelines in Python and AWS** for ingestion of legal and commercial sources.
+- **PostgreSQL optimization** for relational workloads: partitioning, indexes, materialized views, connection pooling.
+- **Data quality and normalization** enforcing a single source of truth: Pydantic validation, declarative rule engine, Great Expectations, SCD2.
 
-## Tabla de contenidos
+## Stack
 
-- [Visión general](#visión-general)
-- [Arquitectura](#arquitectura)
-- [Stack tecnológico](#stack-tecnológico)
-- [Estructura del proyecto](#estructura-del-proyecto)
-- [Quickstart](#quickstart)
-- [Documentación detallada](#documentación-detallada)
-- [Roadmap](#roadmap)
-
----
-
-## Visión general
-
-LegalDataPlatform resuelve tres desafíos centrales del rol de Senior Data Engineer / Arquitecto de Soluciones:
-
-| Desafío | Implementación |
-|---|---|
-| **Pipelines ETL/ELT escalables en Python y AWS** | Orquestación con Prefect, extractores modulares (API, CSV, Parquet, DB-to-DB), transformadores con Pandas + Polars, loaders con `COPY` bulk. Integración con S3 (data lake), Lambda (eventos), Glue Catalog (metadata). |
-| **Optimización PostgreSQL** | Esquemas particionados por rango, índices compuestos y parciales, vistas materializadas, query tuning con `EXPLAIN ANALYZE`, `pg_stat_statements`, connection pooling con PgBouncer. |
-| **Calidad y normalización ("Fuente de verdad")** | Validación con Pydantic + Great Expectations, reglas declarativas en YAML, Slowly Changing Dimensions Type 2, expectation suites versionadas, data quality dashboards. |
-
-## Arquitectura
-
-```
-                        ┌──────────────────────────────────────┐
-                        │         DATA SOURCES                 │
-                        │  APIs legales · CSVs · DB externas   │
-                        │  Web scraping · Event streams        │
-                        └────────────────┬─────────────────────┘
-                                         │
-                                         ▼
-                        ┌──────────────────────────────────────┐
-                        │       EXTRACTORS (Python)            │
-                        │  REST · JDBC · File · Event          │
-                        │  Retry · Circuit breaker · Idempotent│
-                        └────────────────┬─────────────────────┘
-                                         │
-                                         ▼
-                        ┌──────────────────────────────────────┐
-                        │    RAW LAYER (S3 Bronze)             │
-                        │  Parquet + Snappy · Partition: date  │
-                        └────────────────┬─────────────────────┘
-                                         │
-                                         ▼
-                        ┌──────────────────────────────────────┐
-                        │   TRANSFORMATION (Pandas/Polars)     │
-                        │  Normalize · Dedupe · SCD2 · Enrich  │
-                        │  Data Quality Gates (GE)             │
-                        └────────────────┬─────────────────────┘
-                                         │
-                                         ▼
-                        ┌──────────────────────────────────────┐
-                        │   CURATED LAYER (S3 Silver/Gold)     │
-                        │  Clean · Joined · Business-ready     │
-                        └────────────────┬─────────────────────┘
-                                         │
-                                         ▼
-                        ┌──────────────────────────────────────┐
-                        │   POSTGRESQL (Source of Truth)       │
-                        │  Partitioned · Indexed · MViews      │
-                        │  OLTP + Analytical models            │
-                        └────────────────┬─────────────────────┘
-                                         │
-                                         ▼
-                        ┌──────────────────────────────────────┐
-                        │   CONSUMERS                          │
-                        │  BI · APIs · ML · Reporting          │
-                        └──────────────────────────────────────┘
-```
-
-## Stack tecnológico
-
-| Capa | Herramienta | Por qué |
+| Layer | Choice | Why |
 |---|---|---|
-| Lenguaje | **Python 3.11** | Estándar de la industria para data engineering; rich ecosystem. |
-| Orquestación | **Prefect 2** | DAGs dinámicos en Python puro; retries, observability, mejor DX que Airflow para equipos pequeños. |
-| Procesamiento | **Pandas + Polars** | Pandas para compatibilidad y Polars (Rust-backed) para datasets 10-100x más rápidos. |
-| Validación | **Pydantic v2** | Type-safe models, 5-50x más rápido que v1, runtime validation. |
-| Data Quality | **Great Expectations** | Expectation suites versionables, documentation auto-generada, gates en pipelines. |
-| DB Relacional | **PostgreSQL 16** | Particionado nativo, JSONB, full-text search, MVCC maduro. |
-| ORM / Query | **SQLAlchemy 2.0 + asyncpg** | Async-first, type-annotated, connection pool robusto. |
-| Migraciones | **Alembic** | Version control para schema. |
-| Pool | **PgBouncer** | Reduce sobrecarga de conexiones en cargas concurrentes. |
-| Data Lake | **AWS S3** | Durabilidad 11-nines, barato, integra con todo. |
-| Compute serverless | **AWS Lambda** | Event-driven, escala a cero, pay-per-invocation. |
-| Catálogo | **AWS Glue Data Catalog** | Metadata central, schema discovery, integra con Athena/Redshift. |
-| Mensajería | **AWS SQS / EventBridge** | Desacoplamiento, retry nativo, DLQ. |
-| IaC | **Terraform** | Multi-cloud, state management, modulable. |
-| Container | **Docker + Docker Compose** | Parity dev/prod, one-command setup. |
-| Logs | **structlog** | Logs estructurados JSON, correlación por trace-id. |
-| Métricas | **Prometheus + Grafana** | Observability estándar. |
+| Runtime | Python 3.11 async | Standard for data engineering; async/await for extractors |
+| Orchestration | Prefect 2 | Python-native flows, retries, observability |
+| DataFrames | Polars + Pandas | Polars for large batches (Rust-backed), Pandas for compatibility |
+| Validation | Pydantic v2 | Rust-backed core, ~1M models/s |
+| DQ | Great Expectations + custom YAML engine | Statistical + business rules split |
+| RDBMS | PostgreSQL 16 | Partitioning, JSONB, pg_trgm, pg_stat_statements |
+| ORM | SQLAlchemy 2.0 + asyncpg | Async, type-annotated, robust pool |
+| Migrations | Alembic | Version-controlled schema |
+| Pool | PgBouncer | Transaction pooling, 20:1 client:backend ratio |
+| Lake | AWS S3 (MinIO locally) | Medallion Bronze / Silver / Gold / Quarantine |
+| Serverless | AWS Lambda | S3 events → SQS → pipeline trigger |
+| Big data | AWS Glue PySpark | For batches > 100M rows |
+| Messaging | AWS SQS + DLQ | Decoupling + poison-message isolation |
+| IaC | Terraform | All AWS resources codified |
+| Observability | structlog + Prometheus + Grafana | RED + data-specific metrics |
 
-## Estructura del proyecto
+## Project layout
 
 ```
-LegalDataPlatform/
-├── src/
-│   ├── pipelines/
-│   │   ├── extractors/       # Fuentes de datos
-│   │   ├── transformers/     # Lógica de negocio y normalización
-│   │   ├── loaders/          # Escritura a targets
-│   │   └── orchestration/    # Flujos Prefect
-│   ├── data_quality/
-│   │   ├── validators/       # Pydantic models
-│   │   ├── rules/            # GE expectation suites
-│   │   └── reports/          # Dashboards HTML
-│   ├── database/
-│   │   ├── migrations/       # Alembic
-│   │   ├── models/           # SQLAlchemy ORM
-│   │   ├── optimization/     # Indexes, partitions, MViews
-│   │   └── seeds/            # Datos iniciales
-│   ├── aws/
-│   │   ├── s3/               # Data lake handlers
-│   │   ├── lambda_handlers/  # Event processors
-│   │   └── glue_jobs/        # PySpark jobs
-│   ├── schemas/              # Contratos compartidos
-│   ├── observability/        # Logs, métricas, tracing
-│   └── utils/
-├── infra/
-│   ├── terraform/            # IaC AWS
-│   ├── docker/               # Dockerfiles
-│   └── sql/                  # DDL scripts
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
-├── scripts/
-│   ├── seed_data.py
-│   └── benchmarks/
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── PIPELINES.md
-│   ├── POSTGRESQL_OPTIMIZATION.md
-│   ├── DATA_QUALITY.md
-│   ├── AWS_DEPLOYMENT.md
-│   └── WALKTHROUGH.md        # Paso a paso completo
-├── config/
-│   └── pipelines.yaml
-├── docker-compose.yml
-├── pyproject.toml
-├── Makefile
-└── README.md
+src/
+├── config.py
+├── schemas/            Pydantic contracts
+├── database/           SQLAlchemy models, Alembic migrations, optimization scripts
+├── pipelines/
+│   ├── extractors/     REST (generic + SEC EDGAR), CSV, PostgreSQL, S3
+│   ├── transformers/   Normalizers, SCD2, enrichers
+│   ├── loaders/        Postgres bulk COPY, S3 Parquet
+│   └── orchestration/  Prefect flows
+├── data_quality/       YAML rules + Great Expectations integration
+├── aws/                S3 client, Lambda handlers, Glue jobs
+└── observability/      Logs, metrics
+infra/
+├── terraform/          S3, SQS, Lambda, Glue, Aurora Serverless
+├── docker/             Prometheus config
+└── sql/init/           DB extensions + roles
+tests/unit + integration
+docs/
+├── ARCHITECTURE.md
+├── PIPELINES.md
+├── POSTGRESQL_OPTIMIZATION.md
+├── DATA_QUALITY.md
+├── AWS_DEPLOYMENT.md
+├── WALKTHROUGH.md      Full technical write-up with ADRs
+├── TALKING_POINTS.md   Decision rationale for interviews
+└── evidence/           Real runtime screenshots and benchmarks
 ```
 
 ## Quickstart
 
-**Setup automatizado (recomendado)** — un comando hace todo:
+Prerequisites: Python 3.11+, Docker Desktop, Git.
 
 ```bash
-# macOS / Linux / WSL / Git Bash
-bash scripts/setup.sh
+# 1. Env config
+cp .env.example .env
 
-# Windows PowerShell
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
-```
-
-Esto verifica prerequisitos, crea `.env`, instala dependencias, levanta Docker,
-aplica migraciones y genera datos de ejemplo.
-
-**Setup manual** (si prefieres controlar cada paso):
-
-```bash
-# 1. Copiar variables de entorno
-cp .env.example .env        # o "copy .env.example .env" en Windows cmd
-
-# 2. Virtualenv Python
+# 2. Python venv + deps
 python -m venv .venv
-source .venv/bin/activate   # o ".venv\Scripts\activate" en Windows
-
-# 3. Dependencias
+source .venv/bin/activate           # or .venv\Scripts\activate on Windows
 pip install -e ".[dev]"
 
-# 4. Levantar stack local (PostgreSQL + PgBouncer + Prefect + MinIO + Grafana)
+# 3. Docker stack (Postgres + PgBouncer + MinIO + Prefect + Prometheus + Grafana)
 docker compose up -d
 
-# 5. Aplicar migraciones
+# 4. Schema + seed
 alembic upgrade head
-
-# 6. Cargar datos de ejemplo
 python scripts/seed_data.py
 
-# 7. Ejecutar pipeline
-make pipeline
-# o: python -m src.pipelines.orchestration.legal_ingestion_flow
+# 5. Run pipelines
+make pipeline                       # legal documents (CSV source)
+python -m src.pipelines.orchestration.sec_edgar_flow   # real SEC EDGAR feed
+python -m src.pipelines.orchestration.commercial_ingestion_flow
+
+# 6. Tests + benchmarks
+make test
+make benchmark
 ```
 
-### UIs disponibles
+UIs exposed on `localhost`: Prefect 4200 · MinIO 9001 · Prometheus 9090 · Grafana 3000.
 
-- Prefect: http://localhost:4200
-- MinIO: http://localhost:9001 (`minioadmin` / `minioadmin123`)
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000 (`admin` / `admin`)
+## Real source integration
 
-Para detalles por sistema operativo, troubleshooting y puertos ver **[SETUP.md](SETUP.md)**.
+`src/pipelines/extractors/sec_edgar.py` pulls live filings from SEC EDGAR (`https://data.sec.gov/`), normalizes them into `legal_documents`, and routes filing types (10-K, 10-Q, 8-K, DEF 14A...) through the same Pydantic + YAML DQ gates as the rest.
 
-## Documentación detallada
+Rate-limited to SEC's 10 req/s, identified via User-Agent per their fair-use policy.
 
-- [**Walkthrough completo paso a paso**](docs/WALKTHROUGH.md) — Qué se implementó y por qué.
-- [Arquitectura](docs/ARCHITECTURE.md)
-- [Pipelines ETL/ELT](docs/PIPELINES.md)
-- [Optimización PostgreSQL](docs/POSTGRESQL_OPTIMIZATION.md)
-- [Data Quality](docs/DATA_QUALITY.md)
-- [Despliegue AWS](docs/AWS_DEPLOYMENT.md)
+## Documentation
 
-## Roadmap
+- [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) — full technical write-up, ADRs, trade-offs
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — components and patterns
+- [docs/PIPELINES.md](docs/PIPELINES.md) — extractors, transformers, loaders
+- [docs/POSTGRESQL_OPTIMIZATION.md](docs/POSTGRESQL_OPTIMIZATION.md) — partitioning, indexes, MViews, tuning
+- [docs/DATA_QUALITY.md](docs/DATA_QUALITY.md) — the three lines of defense
+- [docs/AWS_DEPLOYMENT.md](docs/AWS_DEPLOYMENT.md) — Terraform, costs, DR runbooks
+- [docs/TALKING_POINTS.md](docs/TALKING_POINTS.md) — architectural decisions Q&A
+- [docs/evidence/](docs/evidence/) — real runtime captures and benchmark numbers
 
-- [x] H0 — Fundación: estructura, Docker Compose local, DB schema, extractor base
-- [x] H1 — Core: pipeline ETL completo, data quality gates, optimización PostgreSQL
-- [x] H2 — AWS: integración S3/Lambda/Glue, Terraform, observability
-- [ ] H3 — Avanzado: ML features, Redshift, streaming CDC con Debezium
+## Author
 
----
-
-**Autor**: Humberto Henriquez — Senior Data Engineer / Solutions Architect
+Humberto Henriquez — Senior Data Engineer / Solutions Architect

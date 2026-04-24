@@ -73,7 +73,7 @@ Los resultados se exponen como métricas Prometheus (`ldp_dq_checks_total{suite,
 
 Pipeline: batch normalizado → `COPY` a temp staging → `INSERT ... ON CONFLICT ... DO UPDATE` → commit.
 
-Throughput medido: ~150K rows/s en hardware m5.large equivalente, con 3 índices y FK constraints.
+Throughput esperado: rango 50K–200K rows/s según hardware, configuración de WAL y número de índices. Los números reales medidos en la máquina de despliegue se registran en [docs/evidence/benchmarks.md](evidence/benchmarks.md) vía `scripts/capture_benchmarks.py`.
 
 ### S3 Parquet
 

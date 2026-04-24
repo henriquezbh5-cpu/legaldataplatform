@@ -49,7 +49,7 @@ CREATE EXTENSION unaccent;
 
 | Operación | Sin particionar | Particionado |
 |---|---|---|
-| Query "último mes" sobre 100M rows | full index scan, ~800ms | scan de una partición, ~40ms |
+| Query "último mes" sobre 100M rows | full index scan — típicamente cientos de ms | scan de una partición — típicamente decenas de ms |
 | `VACUUM` | toda la tabla, horas | por partición, minutos |
 | `DELETE WHERE date < '...'` | horas, gran WAL | `DROP PARTITION`, O(1), sin WAL |
 | Creación de índice | toda la tabla | por partición, paralelo |
