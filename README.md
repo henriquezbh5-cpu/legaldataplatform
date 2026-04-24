@@ -80,22 +80,41 @@ alembic upgrade head
 python scripts/seed_data.py
 
 # 5. Run pipelines
-make pipeline                       # legal documents (CSV source)
-python -m src.pipelines.orchestration.sec_edgar_flow   # real SEC EDGAR feed
-python -m src.pipelines.orchestration.commercial_ingestion_flow
+make pipeline            # legal documents (CSV source)
+make sec-edgar           # real SEC EDGAR filings
+make gleif               # real GLEIF Legal Entity Identifiers
+make commercial          # contracts + transactions from CSV
 
 # 6. Tests + benchmarks
-make test
-make benchmark
+make test                # unit + integration (needs Postgres up)
+make test-unit           # unit only, no DB required
+make benchmark           # query p50/p95/p99
+make evidence            # capture env + benchmarks into docs/evidence/
 ```
 
 UIs exposed on `localhost`: Prefect 4200 · MinIO 9001 · Prometheus 9090 · Grafana 3000.
 
-## Real source integration
+## Real source integrations
 
-`src/pipelines/extractors/sec_edgar.py` pulls live filings from SEC EDGAR (`https://data.sec.gov/`), normalizes them into `legal_documents`, and routes filing types (10-K, 10-Q, 8-K, DEF 14A...) through the same Pydantic + YAML DQ gates as the rest.
+Two production APIs are integrated with real rate limiting and identification:
 
-Rate-limited to SEC's 10 req/s, identified via User-Agent per their fair-use policy.
+### SEC EDGAR ([`src/pipelines/extractors/sec_edgar.py`](src/pipelines/extractors/sec_edgar.py))
+
+Live corporate filings from `data.sec.gov`: 10-K, 10-Q, 8-K, DEF 14A, S-1, etc. Normalized into `legal_documents`. Rate-limited to 8 req/s (under SEC's 10 req/s cap), identified via User-Agent per their fair-use policy.
+
+### GLEIF ([`src/pipelines/extractors/gleif.py`](src/pipelines/extractors/gleif.py))
+
+Legal Entity Identifiers from `api.gleif.org` — the globally mandated ID for any legal entity in financial transactions (MiFID II, Dodd-Frank, EMIR). Normalized into `counterparties` with SCD2 history tracked in `dim_counterparty`. JSON:API pagination handled end-to-end.
+
+## CI/CD
+
+GitHub Actions runs on every push and pull request:
+
+- **lint** — ruff check, ruff format, mypy
+- **unit-tests** — pytest on Python 3.11 and 3.12 in parallel
+- **integration-tests** — pytest against real PostgreSQL 16 service container
+- **security** — pip-audit (CVE scan), bandit (static security analysis)
+- **docker-build** — builds the multi-stage production image
 
 ## Documentation
 

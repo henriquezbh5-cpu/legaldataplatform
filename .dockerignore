@@ -1,0 +1,63 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.tox
+.nox
+.coverage
+coverage.xml
+htmlcov
+*.egg-info
+dist
+build
+
+# Docs & evidence (not needed in the runtime image)
+docs
+notebooks
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.*.yml
+
+# CI
+.github
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Terraform
+infra/terraform/.terraform
+infra/terraform/*.tfstate*
+infra/terraform/tfplan
+infra/terraform/build
+
+# Data
+data/samples
+data/raw
+data/quarantine
+
+# OS
+.DS_Store
+Thumbs.db

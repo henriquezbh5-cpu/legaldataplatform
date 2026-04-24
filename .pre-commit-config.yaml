@@ -1,0 +1,59 @@
+# Pre-commit hooks — run automatically on `git commit`.
+# Install:
+#   pip install pre-commit
+#   pre-commit install
+#
+# Run manually on all files:
+#   pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.(md|csv)$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--unsafe]   # allow custom tags in Prefect configs
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: debug-statements
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.7
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.9.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --follow-imports=silent]
+        additional_dependencies:
+          - pydantic>=2.6
+          - sqlalchemy[asyncio]>=2.0
+          - types-pyyaml
+        files: ^src/
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [-ll, -r]
+        files: ^src/
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
+ci:
+  # Don't run the whole suite on pre-commit.ci — GitHub Actions does that
+  skip: [mypy, bandit]
