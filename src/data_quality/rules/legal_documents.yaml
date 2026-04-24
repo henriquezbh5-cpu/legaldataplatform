@@ -1,0 +1,46 @@
+suite: legal_documents_silver
+description: >
+  Post-normalization quality gate for legal documents. Records failing an
+  "error" rule block the pipeline; "warning" rules only emit metrics.
+
+rules:
+  - name: document_id_not_null
+    type: not_null
+    column: source_id
+    severity: error
+
+  - name: document_hash_not_null
+    type: not_null
+    column: source_hash
+    severity: error
+
+  - name: document_hash_is_sha256
+    type: regex
+    column: source_hash
+    params:
+      pattern: "^[a-f0-9]{64}$"
+    severity: error
+
+  - name: document_type_in_taxonomy
+    type: in_set
+    column: document_type
+    params:
+      values: ["JUDGMENT", "REGULATION", "CONTRACT", "NOTICE", "FILING", "DECREE"]
+    severity: warning
+
+  - name: document_title_not_null
+    type: not_null
+    column: title
+    severity: error
+
+  - name: jurisdiction_not_null
+    type: not_null
+    column: jurisdiction
+    severity: error
+
+  - name: row_count_reasonable
+    type: row_count_range
+    params:
+      min: 1
+      max: 10000000
+    severity: error

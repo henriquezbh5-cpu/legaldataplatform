@@ -1,0 +1,54 @@
+suite: transactions_silver
+description: >
+  Quality rules for normalized commercial transactions before load.
+
+rules:
+  - name: transaction_reference_not_null
+    type: not_null
+    column: reference
+    severity: error
+
+  - name: transaction_reference_unique
+    type: unique
+    column: reference
+    severity: error
+
+  - name: amount_not_null
+    type: not_null
+    column: amount
+    severity: error
+
+  - name: amount_within_reasonable_range
+    type: range
+    column: amount
+    params:
+      min: -1000000000
+      max: 1000000000
+    severity: error
+
+  - name: currency_is_iso_3
+    type: regex
+    column: currency
+    params:
+      pattern: "^[A-Z]{3}$"
+    severity: error
+
+  - name: transaction_type_known
+    type: in_set
+    column: transaction_type
+    params:
+      values:
+        - "INVOICE"
+        - "PAYMENT"
+        - "REFUND"
+        - "ADJUSTMENT"
+        - "CHARGEBACK"
+        - "FEE"
+    severity: warning
+
+  - name: batch_not_empty
+    type: row_count_range
+    params:
+      min: 1
+      max: 50000000
+    severity: error

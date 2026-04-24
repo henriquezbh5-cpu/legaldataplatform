@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LegalDataPlatform — Manual de uso</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --accent: #f59e0b;
+    --success: #059669;
+    --danger: #dc2626;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --text: #0f172a;
+    --text-muted: #475569;
+    --border: #e2e8f0;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--text);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.presentation {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 32px 48px;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    overflow-y: auto;
+}
+
+.slide.active {
+    display: flex;
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.slide-inner {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 48px 64px;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+    max-width: 1200px;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+.slide-inner::-webkit-scrollbar { width: 8px; }
+.slide-inner::-webkit-scrollbar-track { background: #f1f5f9; }
+.slide-inner::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 8px; }
+
+h1 {
+    font-size: 2.75rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 20px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    margin: 16px 0 8px;
+}
+
+h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+p, li {
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+ul, ol { padding-left: 24px; }
+li { margin-bottom: 8px; }
+
+.cover {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%) !important;
+}
+
+.cover .slide-inner {
+    background: transparent;
+    box-shadow: none;
+    text-align: center;
+    color: white;
+}
+
+.cover h1 {
+    font-size: 3.5rem;
+    color: white;
+    margin-bottom: 8px;
+}
+
+.cover .tagline {
+    font-size: 1.25rem;
+    color: #94a3b8;
+    margin-bottom: 40px;
+    font-weight: 400;
+}
+
+.cover .kicker {
+    display: inline-block;
+    background: rgba(37, 99, 235, 0.15);
+    border: 1px solid rgba(37, 99, 235, 0.4);
+    color: #93c5fd;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.cover .meta {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-top: 60px;
+    font-weight: 400;
+}
+
+.slide-title {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+    padding: 4px 10px;
+    background: #dbeafe;
+    border-radius: 4px;
+}
+
+.callout {
+    background: #fef3c7;
+    border-left: 4px solid var(--accent);
+    padding: 18px 22px;
+    margin: 20px 0;
+    border-radius: 8px;
+    font-size: 1.0625rem;
+    color: #78350f;
+}
+
+.callout strong { color: #92400e; }
+
+.technical {
+    background: #f1f5f9;
+    border-left: 4px solid #64748b;
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 6px;
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+}
+
+.technical strong { color: var(--text); }
+
+.step {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    margin: 14px 0;
+    border-radius: 10px;
+    position: relative;
+}
+
+.step-number {
+    position: absolute;
+    top: -16px;
+    left: 20px;
+    background: var(--primary);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+code {
+    background: #f1f5f9;
+    color: #be185d;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+    font-size: 0.9em;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+}
+
+pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 18px 22px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 14px 0;
+    border: 1px solid #1e293b;
+}
+
+pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+    border: 0;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 18px 0; }
+
+.nav {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 100;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.nav button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.nav button:hover { background: var(--primary-dark); }
+.nav button:disabled { background: #334155; cursor: not-allowed; }
+
+.nav .counter {
+    font-size: 0.875rem;
+    font-weight: 600;
+    min-width: 70px;
+    text-align: center;
+    color: #cbd5e1;
+}
+
+.progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--accent);
+    z-index: 200;
+    transition: width 0.3s;
+}
+
+.key-hint {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    background: rgba(255,255,255,0.95);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.warning {
+    background: #fef2f2;
+    border-left: 4px solid var(--danger);
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 6px;
+    font-size: 0.9375rem;
+    color: #991b1b;
+}
+
+.success-box {
+    background: #ecfdf5;
+    border-left: 4px solid var(--success);
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 6px;
+    font-size: 0.9375rem;
+    color: #065f46;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 0.9375rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background: #f8fafc;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+tr:last-child td { border-bottom: 0; }
+tr:hover td { background: #f8fafc; }
+
+.final-slide {
+    background: linear-gradient(135deg, #0f172a 0%, #059669 100%) !important;
+}
+
+.final-slide .slide-inner {
+    background: transparent;
+    box-shadow: none;
+    text-align: center;
+    color: white;
+}
+
+.final-slide h1 { color: white; font-size: 3rem; }
+.final-slide p { color: #d1fae5; }
+.final-slide code {
+    background: rgba(255,255,255,0.1);
+    color: #a7f3d0;
+    border-color: transparent;
+}
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="key-hint">Usa <strong>← →</strong> para navegar</div>
+
+<div class="presentation" id="presentation">
+
+<!-- =========================================================== -->
+<!-- SLIDE 1: PORTADA -->
+<!-- =========================================================== -->
+<div class="slide cover active">
+<div class="slide-inner">
+    <span class="kicker">Guía práctica · 2026</span>
+    <h1>Manual de uso</h1>
+    <p class="tagline">LegalDataPlatform — cómo levantar y operar la plataforma en tu máquina<br>en 9 pasos</p>
+    <p class="meta">Humberto Henriquez · Senior Data Engineer / Solutions Architect</p>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 2: INTRO + PREREQUISITOS -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Introducción</span>
+    <h2>¿Qué vas a hacer?</h2>
+    <p>En los próximos minutos vas a levantar una plataforma de datos completa en tu máquina local, ingerir datos sintéticos, procesarlos por un pipeline ETL/ELT real y consultar los resultados.</p>
+    <p>Todo corre contra <strong>MinIO</strong> (S3 local), sin necesidad de credenciales AWS ni tarjeta de crédito.</p>
+    <div class="callout">
+        <strong>Prerequisitos:</strong>
+        <ul style="margin-top: 10px;">
+            <li>Python 3.11 o superior</li>
+            <li>Docker Desktop (incluye Docker Compose)</li>
+            <li>Git</li>
+            <li>~2 GB de RAM libre para los contenedores</li>
+            <li>~3 GB de disco libre para imágenes y datos</li>
+        </ul>
+    </div>
+    <div class="success-box">
+        <strong>Tiempo estimado:</strong> 10–15 minutos la primera vez, menos de 1 minuto para runs posteriores.
+    </div>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 3: PASO 1 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 1 de 9</span>
+    <h2>Ubícate en el proyecto</h2>
+    <p>Abre tu terminal (PowerShell, cmd, Git Bash o WSL) y navega a la carpeta del proyecto:</p>
+<pre><code>cd E:\Proyectos\LegalDataPlatform</code></pre>
+    <p>Verifica que tienes la estructura esperada:</p>
+<pre><code>ls        # Mac/Linux/Git Bash
+dir       # Windows cmd/PowerShell</code></pre>
+    <p>Deberías ver las siguientes carpetas y archivos:</p>
+    <div class="grid-2">
+        <div>
+            <h4>Carpetas</h4>
+            <ul>
+                <li><code>src/</code> — código fuente</li>
+                <li><code>infra/</code> — Terraform + Docker config</li>
+                <li><code>tests/</code> — suite de tests</li>
+                <li><code>docs/</code> — documentación</li>
+                <li><code>scripts/</code> — utilidades</li>
+            </ul>
+        </div>
+        <div>
+            <h4>Archivos clave</h4>
+            <ul>
+                <li><code>docker-compose.yml</code></li>
+                <li><code>pyproject.toml</code></li>
+                <li><code>Makefile</code></li>
+                <li><code>alembic.ini</code></li>
+                <li><code>.env.example</code></li>
+            </ul>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 4: PASO 2 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 2 de 9</span>
+    <h2>Configura las variables de entorno</h2>
+    <p>Copia el archivo de ejemplo como punto de partida:</p>
+<pre><code>cp .env.example .env</code></pre>
+    <p>El <code>.env.example</code> ya trae valores funcionales para desarrollo local:</p>
+<pre><code># PostgreSQL
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=legaldata
+POSTGRES_USER=ldp_admin
+POSTGRES_PASSWORD=ldp_dev_password
+
+# S3 local (MinIO)
+AWS_S3_ENDPOINT=http://localhost:9000
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=minioadmin123
+
+# Prefect
+PREFECT_API_URL=http://localhost:4200/api</code></pre>
+    <div class="warning">
+        <strong>Nunca commitees un <code>.env</code> con credenciales reales.</strong> El archivo ya está en <code>.gitignore</code>. En producción las credenciales vienen de AWS Secrets Manager vía la task definition de ECS o el IRSA del pod de Kubernetes.
+    </div>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 5: PASO 3 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 3 de 9</span>
+    <h2>Levanta el stack local con Docker</h2>
+    <p>Un solo comando arranca los 6 servicios que componen el entorno local:</p>
+<pre><code>docker compose up -d</code></pre>
+    <p>Verifica que todos estén <code>running</code>:</p>
+<pre><code>docker compose ps
+
+NAME             STATUS
+ldp_postgres     Up (healthy)
+ldp_pgbouncer    Up
+ldp_minio        Up (healthy)
+ldp_prefect      Up
+ldp_prometheus   Up
+ldp_grafana      Up</code></pre>
+    <p>Si algún servicio aparece en <code>Restarting</code>, revisa sus logs:</p>
+<pre><code>docker compose logs postgres
+docker compose logs -f prefect    # -f hace "follow" (tail -f)</code></pre>
+    <div class="technical">
+        <strong>Primera vez:</strong> Docker descarga las imágenes (~2 GB total). Puede tardar 2–5 minutos según tu conexión. Las siguientes veces <code>up -d</code> es instantáneo porque las imágenes quedan cacheadas.
+    </div>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 6: PASO 4 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 4 de 9</span>
+    <h2>Instala las dependencias Python</h2>
+    <p>Instalación directa (recomendado crear un virtualenv aislado):</p>
+<pre><code>python -m venv .venv
+
+source .venv/bin/activate      # Mac / Linux / Git Bash
+.venv\Scripts\activate         # Windows PowerShell / cmd
+
+pip install -e ".[dev]"</code></pre>
+    <p>Flags explicados:</p>
+    <ul>
+        <li><code>-e</code> (editable): los cambios en el código se reflejan sin reinstalar.</li>
+        <li><code>[dev]</code>: incluye el extra con tooling de desarrollo (pytest, mypy, ruff, moto, faker).</li>
+    </ul>
+    <p>Se instalan unas 40 librerías. Las más importantes:</p>
+<pre><code>pandas, polars              # procesamiento de datos
+sqlalchemy[asyncio]         # ORM async
+asyncpg                     # driver PostgreSQL async
+pydantic                    # validación
+prefect                     # orquestación
+great-expectations          # data quality
+boto3, aioboto3             # AWS SDK
+structlog, prometheus-client # observabilidad
+pytest, moto, faker         # testing</code></pre>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 7: PASO 5 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 5 de 9</span>
+    <h2>Aplica las migraciones de schema</h2>
+    <p>La base de datos está vacía. Le decimos a Alembic que cree toda la estructura:</p>
+<pre><code>alembic upgrade head</code></pre>
+    <p>Esto ejecuta las 2 migraciones en orden:</p>
+    <div class="step">
+        <span class="step-number">1</span>
+        <h3>0001_initial_schema</h3>
+        <p>Crea extensiones (<code>uuid-ossp</code>, <code>pgcrypto</code>, <code>pg_trgm</code>, <code>btree_gin</code>), las 9 tablas principales con sus constraints (FK, CHECK, UNIQUE), índices base y tablas de staging UNLOGGED.</p>
+    </div>
+    <div class="step">
+        <span class="step-number">2</span>
+        <h3>0002_partitions_and_mviews</h3>
+        <p>Define la función helper <code>create_monthly_partition()</code>, genera particiones desde hace 6 meses hasta +12 meses, y crea la materialized view <code>mv_monthly_revenue_per_counterparty</code>.</p>
+    </div>
+    <p>Verifica el resultado:</p>
+<pre><code>psql -h localhost -U ldp_admin -d legaldata -c "\dt"
+psql -h localhost -U ldp_admin -d legaldata -c "\d+ transactions"</code></pre>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 8: PASO 6 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 6 de 9</span>
+    <h2>Genera datos sintéticos de ejemplo</h2>
+    <p>Para probar el pipeline necesitamos datos. El script de seed usa Faker para producir datasets realistas:</p>
+<pre><code>python scripts/seed_data.py</code></pre>
+    <p>Resultado en <code>data/samples/</code>:</p>
+    <table>
+        <tr><th>Archivo</th><th>Filas</th><th>Contenido</th></tr>
+        <tr><td><code>legal_documents.csv</code></td><td>5,000</td><td>Sentencias, regulaciones, actas. Incluye ~50 filas inválidas intencionadas.</td></tr>
+        <tr><td><code>counterparties.csv</code></td><td>500</td><td>Contrapartes con <code>risk_score</code>, <code>country_code</code>, <code>tax_id</code>.</td></tr>
+        <tr><td><code>contracts.csv</code></td><td>1,500</td><td>Contratos con vigencias, moneda y valor total.</td></tr>
+        <tr><td><code>transactions.csv</code></td><td>20,000</td><td>Facturas, pagos y refunds con referencias únicas.</td></tr>
+    </table>
+    <div class="callout">
+        <strong>Diseño intencional:</strong> el seed incluye ~1% de registros malformados (campos vacíos, formatos inválidos). Esto permite ver en vivo el pipeline rechazándolos a <em>quarantine</em> y validar que la observabilidad de DQ funciona correctamente.
+    </div>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 9: PASO 7 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 7 de 9</span>
+    <h2>Ejecuta el pipeline end-to-end</h2>
+    <p>Corre el flow principal:</p>
+<pre><code>make pipeline
+# equivalentemente:
+python -m src.pipelines.orchestration.legal_ingestion_flow</code></pre>
+    <p>Output esperado (resumido):</p>
+<pre><code>[INFO] csv_extractor.start path=data/samples/legal_documents.csv
+[INFO] csv_extractor.batch batch_id=... size=5000 offset=0
+[INFO] s3_loader.written dataset=legal_documents rows=5000
+[INFO] normalizer.rejections schema=LegalDocumentSchema
+       rejected=50 valid=4950 rate=0.01
+[INFO] dq.checks_passed suite=legal_ingestion total=6
+[INFO] pg_loader.upserted table=legal_documents rows=4950
+       conflict=source_system,source_id,document_date
+[INFO] Flow summary: {"extracted":5000,"valid":4950,
+       "rejected":50,"loaded":4950}</code></pre>
+    <div class="success-box">
+        <strong>Métricas del run:</strong> 5,000 registros procesados, 50 rechazados y enviados a quarantine, 4,950 escritos a Bronze (S3) + Silver (PostgreSQL). Materialized views refrescadas. Duración total &lt; 60 segundos.
+    </div>
+    <p style="margin-top: 16px;">Para correr el pipeline comercial (counterparties + transactions):</p>
+<pre><code>python -m src.pipelines.orchestration.commercial_ingestion_flow</code></pre>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 10: PASO 8 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 8 de 9</span>
+    <h2>Inspecciona los resultados</h2>
+    <div class="grid-2">
+        <div class="step">
+            <h3>Prefect UI</h3>
+            <p><code>http://localhost:4200</code></p>
+            <p>Flow runs, timeline de tasks, logs por stage, estadísticas de duración.</p>
+        </div>
+        <div class="step">
+            <h3>MinIO Console</h3>
+            <p><code>http://localhost:9001</code></p>
+            <p>Credenciales: <code>minioadmin</code> / <code>minioadmin123</code>. Explora los 4 buckets.</p>
+        </div>
+        <div class="step">
+            <h3>Prometheus</h3>
+            <p><code>http://localhost:9090</code></p>
+            <p>Query directa: <code>sum(rate(ldp_records_loaded_total[5m])) by (pipeline)</code></p>
+        </div>
+        <div class="step">
+            <h3>Grafana</h3>
+            <p><code>http://localhost:3000</code></p>
+            <p>Credenciales: <code>admin</code> / <code>admin</code>. Conecta Prometheus como datasource.</p>
+        </div>
+    </div>
+    <p style="margin-top: 16px;">Consulta directa contra PostgreSQL:</p>
+<pre><code>psql -h localhost -U ldp_admin -d legaldata
+
+SELECT COUNT(*), MIN(document_date), MAX(document_date)
+  FROM legal_documents;
+
+SELECT * FROM mv_monthly_revenue_per_counterparty LIMIT 10;
+
+SELECT queryid, calls, mean_exec_time, query
+  FROM pg_stat_statements
+  ORDER BY mean_exec_time DESC LIMIT 5;</code></pre>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 11: PASO 9 -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Paso 9 de 9</span>
+    <h2>Tests, benchmarks y calidad de código</h2>
+    <p>Ejecuta la suite de tests automatizada:</p>
+<pre><code>make test</code></pre>
+    <p>Corre ~30 tests unitarios (pytest-asyncio) + tests de integración contra S3 mockeado con moto. Los tests cubren:</p>
+    <ul>
+        <li>Schemas Pydantic: validación de campos, rangos, normalización</li>
+        <li>Rule engine: cada tipo de regla YAML (<code>not_null</code>, <code>unique</code>, <code>regex</code>, <code>in_set</code>, <code>range</code>)</li>
+        <li>Helpers de enrichment: row hash determinista, risk tier buckets</li>
+        <li>Normalizers: separación valid/rejected</li>
+        <li>S3 handler: put/list/delete contra moto</li>
+    </ul>
+    <p>Mide el performance de las queries representativas:</p>
+<pre><code>make benchmark</code></pre>
+<pre><code>=== count_transactions_last_30d ===
+p50: 12.34 ms   p95: 18.90 ms   p99: 22.15 ms
+Cache hit: 99.87%
+
+=== top_counterparties_by_revenue ===
+p50: 45.67 ms   p95: 72.13 ms   p99: 89.40 ms
+Cache hit: 95.20%
+
+=== mv_monthly_revenue_scan ===
+p50: 2.15 ms    p95: 3.80 ms    p99: 5.42 ms</code></pre>
+    <p>Linting y formato del código:</p>
+<pre><code>make lint          # ruff (lint) + mypy (type check)
+make format        # ruff format + auto-fix</code></pre>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 12: CHEATSHEET -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Referencia rápida</span>
+    <h2>Cheatsheet de comandos</h2>
+    <table>
+        <tr><th>Operación</th><th>Comando</th></tr>
+        <tr><td>Estado de servicios</td><td><code>docker compose ps</code></td></tr>
+        <tr><td>Logs de un servicio</td><td><code>docker compose logs -f postgres</code></td></tr>
+        <tr><td>Reiniciar un servicio</td><td><code>docker compose restart prefect</code></td></tr>
+        <tr><td>Apagar stack (conserva volúmenes)</td><td><code>docker compose down</code></td></tr>
+        <tr><td>Apagar y reset total</td><td><code>docker compose down -v</code></td></tr>
+        <tr><td>Pipeline legal</td><td><code>make pipeline</code></td></tr>
+        <tr><td>Pipeline comercial</td><td><code>python -m src.pipelines.orchestration.commercial_ingestion_flow</code></td></tr>
+        <tr><td>Registrar deployments Prefect</td><td><code>python -m src.pipelines.orchestration.deployments</code></td></tr>
+        <tr><td>Nueva migración</td><td><code>alembic revision --autogenerate -m "descripción"</code></td></tr>
+        <tr><td>Aplicar migraciones</td><td><code>alembic upgrade head</code></td></tr>
+        <tr><td>Rollback última migración</td><td><code>alembic downgrade -1</code></td></tr>
+        <tr><td>Tests</td><td><code>make test</code></td></tr>
+        <tr><td>Benchmarks</td><td><code>make benchmark</code></td></tr>
+        <tr><td>Regenerar PDFs</td><td><code>python scripts/generate_pdfs.py</code></td></tr>
+        <tr><td>Terraform plan</td><td><code>cd infra/terraform &amp;&amp; terraform plan -out tfplan</code></td></tr>
+        <tr><td>Terraform apply</td><td><code>terraform apply tfplan</code></td></tr>
+    </table>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 13: TROUBLESHOOTING -->
+<!-- =========================================================== -->
+<div class="slide">
+<div class="slide-inner">
+    <span class="slide-title">Troubleshooting</span>
+    <h2>Problemas comunes y soluciones</h2>
+    <div class="step">
+        <h3>"port 5432 already in use"</h3>
+        <p>Otro PostgreSQL local está corriendo. Detenlo (<code>pg_ctl stop</code>, service manager o Docker Desktop) o cambia el puerto en <code>docker-compose.yml</code> a 5433.</p>
+    </div>
+    <div class="step">
+        <h3>"connection refused" hacia postgres</h3>
+        <p>El healthcheck tarda unos segundos. Espera 10s después de <code>docker compose up</code>. Confirma con <code>docker compose logs postgres</code> que aparezca <em>"database system is ready to accept connections"</em>.</p>
+    </div>
+    <div class="step">
+        <h3>"ModuleNotFoundError: No module named 'src'"</h3>
+        <p>Falta instalar en modo editable. Ejecuta <code>pip install -e ".[dev]"</code> desde la raíz del proyecto, dentro del virtualenv activo.</p>
+    </div>
+    <div class="step">
+        <h3>Pipeline rechaza el 100% de las filas</h3>
+        <p>Muy probable que falten migraciones o el seed. Ejecuta en orden: <code>alembic upgrade head</code> → <code>python scripts/seed_data.py</code> → <code>make pipeline</code>.</p>
+    </div>
+    <div class="step">
+        <h3>"InvalidAccessKeyId" contra S3 local</h3>
+        <p>MinIO no arrancó correctamente o el <code>.env</code> tiene credenciales distintas a las del <code>docker-compose.yml</code>. Verifica ambos y reinicia: <code>docker compose restart minio</code>.</p>
+    </div>
+    <div class="step">
+        <h3>Prefect UI no carga</h3>
+        <p>Revisa <code>docker compose logs prefect</code>. Si dice "port 4200 in use", detén el proceso anterior. Si dice "waiting for database", espera 30s adicionales para que Prefect inicialice su SQLite interna.</p>
+    </div>
+    <div class="step">
+        <h3>"asyncpg.exceptions.PreparedStatementError"</h3>
+        <p>Conectaste vía PgBouncer sin deshabilitar el statement cache. Usa <code>direct_engine</code> o configura <code>connect_args={"statement_cache_size": 0}</code> en el engine.</p>
+    </div>
+</div>
+</div>
+
+<!-- =========================================================== -->
+<!-- SLIDE 14: CIERRE -->
+<!-- =========================================================== -->
+<div class="slide final-slide">
+<div class="slide-inner">
+    <span class="kicker" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d;">Listo</span>
+    <h1>Plataforma operativa</h1>
+    <p style="font-size: 1.25rem; margin: 28px 0;">Si llegaste hasta aquí, tienes un stack de datos profesional corriendo localmente: ingesta, validación, normalización, almacenamiento y observabilidad.</p>
+    <h3 style="margin-top: 40px;">Para profundizar</h3>
+    <p>Consulta los PDFs en <code>docs/pdf/</code>:</p>
+    <div style="text-align: left; max-width: 680px; margin: 20px auto; font-size: 0.95rem;">
+        <p>· <strong>WALKTHROUGH.pdf</strong> — explicación técnica completa (6 ADRs, decisiones de diseño)</p>
+        <p>· <strong>ARCHITECTURE.pdf</strong> — diagramas, componentes y patrones aplicados</p>
+        <p>· <strong>PIPELINES.pdf</strong> — extractors, transformers, loaders, orquestación</p>
+        <p>· <strong>POSTGRESQL_OPTIMIZATION.pdf</strong> — tuning, particionado, índices, benchmarks</p>
+        <p>· <strong>DATA_QUALITY.pdf</strong> — las 3 líneas de defensa (Pydantic, YAML, GE)</p>
+        <p>· <strong>AWS_DEPLOYMENT.pdf</strong> — Terraform, costos mensuales, runbooks de DR</p>
+    </div>
+    <p style="margin-top: 50px; color: #94a3b8; font-size: 0.875rem;">
+        Humberto Henriquez · 2026
+    </p>
+</div>
+</div>
+
+</div>
+
+<div class="nav">
+    <button id="prev">← Atrás</button>
+    <span class="counter"><span id="current">1</span> / <span id="total">14</span></span>
+    <button id="next">Siguiente →</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const currentEl = document.getElementById('current');
+const totalEl = document.getElementById('total');
+const prevBtn = document.getElementById('prev');
+const nextBtn = document.getElementById('next');
+const progressBar = document.getElementById('progress');
+let index = 0;
+
+totalEl.textContent = slides.length;
+
+function show(i) {
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    currentEl.textContent = i + 1;
+    prevBtn.disabled = i === 0;
+    nextBtn.disabled = i === slides.length - 1;
+    progressBar.style.width = `${((i + 1) / slides.length) * 100}%`;
+    const active = slides[i].querySelector('.slide-inner');
+    if (active) active.scrollTop = 0;
+}
+
+function next() { if (index < slides.length - 1) { index++; show(index); } }
+function prev() { if (index > 0) { index--; show(index); } }
+
+nextBtn.addEventListener('click', next);
+prevBtn.addEventListener('click', prev);
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { next(); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { prev(); e.preventDefault(); }
+    if (e.key === 'Home') { index = 0; show(index); }
+    if (e.key === 'End') { index = slides.length - 1; show(index); }
+});
+
+show(0);
+</script>
+
+</body>
+</html>
