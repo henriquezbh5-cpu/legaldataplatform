@@ -10,6 +10,7 @@ efficiently, avoiding column-by-column comparison.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -107,15 +108,41 @@ class Scd2Handler:
             self.config.hash_field,
             "loaded_at",
         ]
-        placeholders = ", ".join(f":{f}" for f in fields)
         col_list = ", ".join(fields)
 
-        params = {f: record.get(f) for f in self.config.insert_fields}
+        # Placeholders; JSONB fields need an explicit cast so asyncpg binds
+        # them as text and Postgres parses them as JSON.
+        def placeholder(field_name: str, value: Any) -> str:
+            if isinstance(value, (dict, list)):
+                return f"CAST(:{field_name} AS JSONB)"
+            return f":{field_name}"
+
+        params: dict[str, Any] = {}
+        placeholders: list[str] = []
+        for f in self.config.insert_fields:
+            value = record.get(f)
+            if isinstance(value, (dict, list)):
+                params[f] = json.dumps(value, default=str)
+            else:
+                params[f] = value
+            placeholders.append(placeholder(f, value))
+
         params[self.config.hash_field] = record[self.config.hash_field]
         params["valid_from"] = effective_date
         params["valid_to"] = date(9999, 12, 31)
         params["is_current"] = True
         params["loaded_at"] = datetime.utcnow()
 
-        sql = text(f"INSERT INTO {self.config.table} ({col_list}) VALUES ({placeholders})")
+        placeholders.extend(
+            [
+                ":valid_from",
+                ":valid_to",
+                ":is_current",
+                f":{self.config.hash_field}",
+                ":loaded_at",
+            ]
+        )
+
+        placeholder_sql = ", ".join(placeholders)
+        sql = text(f"INSERT INTO {self.config.table} ({col_list}) VALUES ({placeholder_sql})")
         await self.session.execute(sql, params)
