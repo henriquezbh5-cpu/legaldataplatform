@@ -8,6 +8,68 @@
 
 ETL/ELT platform for legal and commercial data. Python 3.11+, PostgreSQL 16, AWS (S3, Lambda, Glue), Docker.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Sources["Data sources"]
+        SEC["SEC EDGAR API<br/>(real corporate filings)"]
+        GLEIF["GLEIF API<br/>(Legal Entity Identifiers)"]
+        CSV["CSV / SFTP"]
+        DB["External Postgres<br/>(watermark incremental)"]
+    end
+
+    subgraph Extract["Ingestion - async Python"]
+        EXT["Extractors<br/>(rate-limited,<br/>lineage-tagged)"]
+    end
+
+    subgraph Bronze["Bronze - S3 Parquet (immutable raw)"]
+        B[(Bronze bucket)]
+    end
+
+    subgraph Validate["Three lines of DQ defense"]
+        PYD["Pydantic v2<br/>(structural)"]
+        YAML["YAML rule engine<br/>(business rules)"]
+        GE["Great Expectations<br/>(statistical)"]
+    end
+
+    Q[(Quarantine bucket<br/>with error context)]
+
+    subgraph Transform["Transformation"]
+        NORM["Normalize + SCD2 +<br/>Enrichment"]
+    end
+
+    subgraph Silver["Silver - operational source of truth"]
+        PG[("PostgreSQL 16<br/>partitioned · indexed · MVs")]
+    end
+
+    subgraph Gold["Gold - business-ready"]
+        MV[("Materialized views +<br/>dbt models")]
+    end
+
+    subgraph Consumers
+        BI[BI / dashboards]
+        ML[ML features]
+        API[APIs]
+    end
+
+    Sources --> EXT --> B
+    B --> PYD --> YAML --> GE
+    GE -->|valid| NORM
+    PYD -->|rejected| Q
+    YAML -->|rejected| Q
+    GE -->|rejected| Q
+    NORM -->|COPY bulk| PG
+    PG --> MV
+    MV --> BI
+    MV --> ML
+    MV --> API
+```
+
+**Orchestration**: Prefect 2 flows with retries, schedules, observability.
+**Observability**: structlog JSON logs → Prometheus metrics → pre-provisioned Grafana dashboard.
+**Infra**: Terraform for S3 + KMS + SQS + Lambda + Glue + Aurora Serverless v2.
+
 ## Requirements addressed
 
 - **Scalable ETL/ELT pipelines in Python and AWS** for ingestion of legal and commercial sources.
@@ -100,6 +162,30 @@ make evidence            # capture env + benchmarks into docs/evidence/
 ```
 
 UIs exposed on `localhost`: Prefect 4200 · MinIO 9001 · Prometheus 9090 · Grafana 3000.
+
+## Event flow for S3-triggered ingestion
+
+```mermaid
+sequenceDiagram
+    participant S3 as S3 Bronze
+    participant L1 as Lambda s3_event_ingest
+    participant SQS as SQS ingest queue
+    participant L2 as Lambda sqs_pipeline_trigger
+    participant Prefect as Prefect API
+    participant Worker as ECS / Prefect worker
+    participant PG as PostgreSQL
+
+    S3->>L1: ObjectCreated event (.parquet)
+    L1->>SQS: SendMessageBatch
+    Note over SQS: 5 retries before DLQ
+    SQS->>L2: EventSourceMapping (poll)
+    L2->>Prefect: POST /deployments/{id}/create_flow_run
+    Prefect->>Worker: Dispatch flow
+    Worker->>S3: Read Parquet from Bronze
+    Worker->>Worker: Normalize + DQ gate
+    Worker->>PG: COPY + UPSERT via staging
+    Worker->>Prefect: Report success
+```
 
 ## Real source integrations
 
