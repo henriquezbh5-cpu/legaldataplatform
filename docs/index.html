@@ -449,7 +449,8 @@ footer a:hover { text-decoration: underline; }
                 particionado, quality-as-code y Terraform IaC.
             </p>
             <div class="cta-group">
-                <a href="presentacion-pro.html" class="btn btn-primary">Presentación ejecutiva</a>
+                <a href="demo.html" class="btn btn-primary">▶ Probar demo en vivo</a>
+                <a href="presentacion-pro.html" class="btn btn-secondary">Presentación ejecutiva</a>
                 <a href="manual-uso.html" class="btn btn-secondary">Manual de uso</a>
                 <a href="#docs" class="btn btn-secondary">Documentación</a>
             </div>
@@ -472,6 +473,20 @@ footer a:hover { text-decoration: underline; }
                     <span class="stat-label">PDFs de docs</span>
                 </div>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============== DEMO DESTACADA ============== -->
+<section id="demo-hero" style="padding: 40px 0; background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center;">
+            <div>
+                <span style="display: inline-block; background: rgba(5, 150, 105, 0.15); border: 1px solid rgba(5, 150, 105, 0.4); color: #34d399; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;">● En vivo</span>
+                <h2 style="font-size: 1.6rem; margin-bottom: 8px;">Ejecuta el pipeline en tu navegador</h2>
+                <p style="color: var(--text-muted); margin-bottom: 0;">Simulación fidedigna del flow real: extract, validate, transform, load. Logs JSON, métricas Prometheus, quarantine, DQ rules, queries SQL. Sin instalar nada.</p>
+            </div>
+            <a href="demo.html" style="background: var(--success); color: white; padding: 14px 28px; border-radius: 10px; font-weight: 700; text-decoration: none; white-space: nowrap; font-size: 0.95rem; transition: transform 0.15s;">▶ Iniciar demo</a>
         </div>
     </div>
 </section>
@@ -616,12 +631,22 @@ Infra: TERRAFORM · Docker Compose · AWS (S3/Lambda/SQS/Glue/Aurora)</pre>
             La misma arquitectura explicada con distinto nivel de detalle y vocabulario.
         </p>
 
-        <div class="grid grid-3">
+        <div class="grid grid-4">
+            <div class="card" style="border-color: rgba(5, 150, 105, 0.4);">
+                <div class="card-icon" style="background: linear-gradient(135deg, #059669, #10b981);">▶</div>
+                <h3>Demo en vivo</h3>
+                <p>
+                    Ejecuta el pipeline real client-side. Logs, métricas,
+                    quarantine y queries SQL interactivos.
+                </p>
+                <a class="card-link" href="demo.html" style="color: #34d399;">Probar ahora →</a>
+            </div>
+
             <div class="card">
                 <div class="card-icon">📊</div>
                 <h3>Ejecutiva · Pro</h3>
                 <p>
-                    Tono profesional con analogía de centro de distribución logístico.
+                    Tono profesional con analogía de centro logístico.
                     38 slides con stats, diagramas, código.
                 </p>
                 <a class="card-link" href="presentacion-pro.html">Abrir presentación →</a>
@@ -631,8 +656,8 @@ Infra: TERRAFORM · Docker Compose · AWS (S3/Lambda/SQS/Glue/Aurora)</pre>
                 <div class="card-icon">🎓</div>
                 <h3>Didáctica</h3>
                 <p>
-                    Misma información en tono muy accesible, con analogía de fábrica
-                    de producción. Pensada para onboarding o audiencias no-técnicas.
+                    Misma información en tono accesible, analogía de fábrica
+                    de producción. Audiencias no-técnicas.
                 </p>
                 <a class="card-link" href="presentacion.html">Abrir presentación →</a>
             </div>
@@ -641,10 +666,10 @@ Infra: TERRAFORM · Docker Compose · AWS (S3/Lambda/SQS/Glue/Aurora)</pre>
                 <div class="card-icon">🛠️</div>
                 <h3>Manual de uso</h3>
                 <p>
-                    Guía paso a paso de 9 pasos para levantar la plataforma local.
-                    14 slides con comandos exactos, troubleshooting.
+                    9 pasos para levantar la plataforma local.
+                    14 slides con comandos y troubleshooting.
                 </p>
-                <a class="card-link" href="manual-uso.html">Abrir presentación →</a>
+                <a class="card-link" href="manual-uso.html">Abrir manual →</a>
             </div>
         </div>
     </div>

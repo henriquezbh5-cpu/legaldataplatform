@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LegalDataPlatform — Demo interactiva</title>
+<meta name="description" content="Ejecuta el pipeline ETL en tu navegador. Logs, métricas y datos reales.">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --accent: #f59e0b;
+    --success: #059669;
+    --danger: #dc2626;
+    --purple: #8b5cf6;
+    --bronze: #b45309;
+    --silver: #64748b;
+    --gold: #d97706;
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 0 32px; }
+
+/* ====== TOP BAR ====== */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.topbar h1 { font-size: 1.1rem; font-weight: 600; }
+.topbar .badge {
+    display: inline-block;
+    background: rgba(37, 99, 235, 0.15);
+    color: #93c5fd;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+}
+
+.topbar nav { display: flex; gap: 16px; font-size: 0.875rem; }
+.topbar nav a { color: var(--text-muted); text-decoration: none; transition: color 0.15s; }
+.topbar nav a:hover { color: var(--text); }
+
+/* ====== HEADER ====== */
+.header {
+    padding: 60px 0 30px;
+    text-align: center;
+    background: radial-gradient(ellipse at center top, #1e3a8a 0%, #0f172a 60%);
+}
+
+.header h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+}
+
+.header p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+/* ====== CONTROL PANEL ====== */
+.control-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin: 32px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+}
+
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+}
+.btn-secondary:hover:not(:disabled) { border-color: var(--text-muted); background: rgba(255,255,255,0.03); }
+
+.btn-danger { background: rgba(220, 38, 38, 0.15); color: #fca5a5; border-color: rgba(220, 38, 38, 0.3); }
+.btn-danger:hover { background: rgba(220, 38, 38, 0.25); }
+
+.speed-selector { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 8px; border: 1px solid var(--border); }
+.speed-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+.speed-btn.active { background: var(--primary); color: white; }
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.status-dot.running { background: var(--success); animation: pulse 1.5s infinite; }
+.status-dot.done { background: var(--success); }
+.status-dot.error { background: var(--danger); }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.5); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 8px rgba(5, 150, 105, 0); }
+}
+
+/* ====== PIPELINE VISUALIZATION ====== */
+.pipeline-viz {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.pipeline-viz h2 {
+    font-size: 1.1rem;
+    color: var(--text);
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.pipeline-stages {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    position: relative;
+}
+
+.stage {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    transition: all 0.4s;
+    position: relative;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stage.active {
+    border-color: var(--stage-color);
+    background: color-mix(in srgb, var(--stage-color) 10%, var(--bg));
+    box-shadow: 0 0 30px color-mix(in srgb, var(--stage-color) 25%, transparent);
+    transform: translateY(-4px);
+}
+
+.stage.done {
+    border-color: var(--stage-color);
+    background: color-mix(in srgb, var(--stage-color) 5%, var(--bg));
+}
+
+.stage-name {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.stage-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.stage-counter {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--stage-color);
+    font-family: var(--mono);
+    line-height: 1;
+}
+
+.stage-unit {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.stage-arrow {
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--border);
+    font-size: 1.2rem;
+    z-index: 2;
+}
+
+.stage:nth-child(1) { --stage-color: #3b82f6; }
+.stage:nth-child(2) { --stage-color: var(--bronze); }
+.stage:nth-child(3) { --stage-color: var(--accent); }
+.stage:nth-child(4) { --stage-color: var(--purple); }
+.stage:nth-child(5) { --stage-color: var(--silver); }
+.stage:nth-child(6) { --stage-color: var(--gold); }
+
+/* ====== METRICS GRID ====== */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+}
+
+.metric-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.metric.success .metric-value { color: #34d399; }
+.metric.danger .metric-value { color: #f87171; }
+.metric.primary .metric-value { color: #60a5fa; }
+
+/* ====== LOGS ====== */
+.logs-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.logs-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logs-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.logs-header .count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+}
+
+.logs {
+    background: #0a0f1e;
+    padding: 16px 20px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    height: 320px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+.logs::-webkit-scrollbar { width: 8px; }
+.logs::-webkit-scrollbar-track { background: transparent; }
+.logs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.log-line {
+    padding: 2px 0;
+    animation: log-in 0.25s ease;
+    display: flex;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+@keyframes log-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.log-time { color: #64748b; min-width: 70px; }
+.log-level { min-width: 50px; font-weight: 700; }
+.log-level.info { color: #60a5fa; }
+.log-level.warn { color: #fbbf24; }
+.log-level.error { color: #f87171; }
+.log-level.success { color: #34d399; }
+.log-event { color: #c4b5fd; min-width: 170px; }
+.log-meta { color: #94a3b8; }
+.log-meta .key { color: #94a3b8; }
+.log-meta .val { color: #e2e8f0; }
+
+/* ====== TWO-COLUMN ====== */
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+    .two-col { grid-template-columns: 1fr; }
+}
+
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+}
+
+.panel h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.panel h2 .tag {
+    font-size: 0.7rem;
+    background: rgba(37, 99, 235, 0.15);
+    color: #93c5fd;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+/* ====== TABLES ====== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+td.mono { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
+
+tr:last-child td { border-bottom: none; }
+
+.badge-sm {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-error { background: rgba(220, 38, 38, 0.15); color: #fca5a5; }
+.badge-warn { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.badge-ok { background: rgba(5, 150, 105, 0.15); color: #34d399; }
+
+/* ====== CHARTS ====== */
+.chart-container {
+    position: relative;
+    height: 240px;
+}
+
+/* ====== SQL PLAYGROUND ====== */
+.sql-playground {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.sql-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sql-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.sql-header p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.sql-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 24px 0;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.sql-tab {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.sql-tab.active { background: #0a0f1e; color: var(--text); border-color: var(--border); }
+
+.sql-body { padding: 16px 24px; }
+.sql-query { background: #0a0f1e; padding: 16px; border-radius: 8px; font-family: var(--mono); font-size: 0.82rem; line-height: 1.55; color: #e2e8f0; overflow-x: auto; margin-bottom: 16px; }
+.sql-query .kw { color: #c4b5fd; font-weight: 600; }
+.sql-query .fn { color: #60a5fa; }
+.sql-query .str { color: #86efac; }
+.sql-query .num { color: #fbbf24; }
+.sql-query .cm { color: #64748b; font-style: italic; }
+
+.sql-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; font-family: var(--mono); }
+
+/* ====== FINAL SUMMARY ====== */
+.summary-card {
+    background: linear-gradient(135deg, rgba(5, 150, 105, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
+    border: 1px solid rgba(5, 150, 105, 0.3);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    display: none;
+}
+
+.summary-card.show { display: block; animation: slide-in 0.4s ease; }
+
+@keyframes slide-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.summary-card h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.summary-card p { color: var(--text-muted); margin-bottom: 20px; }
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.summary-stat {
+    text-align: center;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.summary-stat-value {
+    font-family: var(--mono);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #34d399;
+    line-height: 1;
+}
+
+.summary-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 6px;
+    font-weight: 600;
+}
+
+/* ====== FOOTER ====== */
+footer {
+    padding: 40px 0;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+}
+
+footer a { color: #93c5fd; text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+.hint-box {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+    color: #fbbf24;
+}
+
+.hint-box strong { color: #fde68a; }
+
+@media (max-width: 768px) {
+    .pipeline-stages { grid-template-columns: repeat(3, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .container { padding: 0 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- =========== TOP BAR =========== -->
+<div class="topbar">
+    <div class="container" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        <h1>LegalDataPlatform <span class="badge">Live Demo</span></h1>
+        <nav>
+            <a href="index.html">Portfolio</a>
+            <a href="presentacion-pro.html">Presentación</a>
+            <a href="manual-uso.html">Manual</a>
+            <a href="https://github.com/henriquezbh5-cpu/legaldataplatform" target="_blank">Código</a>
+        </nav>
+    </div>
+</div>
+
+<!-- =========== HEADER =========== -->
+<div class="header">
+    <div class="container">
+        <h1>Prueba el pipeline en tu navegador</h1>
+        <p>Ejecuta una simulación fidedigna del pipeline ETL/ELT. Logs estructurados, métricas de Prometheus, validación DQ y datos finales como los que produce el sistema real.</p>
+    </div>
+</div>
+
+<!-- =========== MAIN =========== -->
+<div class="container">
+
+    <div class="hint-box">
+        <strong>Cómo funciona esta demo:</strong> reproduce la ejecución real de <code>make pipeline</code> contra el dataset de 5,000 documentos legales sintéticos del seed. Los logs, validaciones, métricas y datos finales corresponden al output genuino del sistema corriendo local.
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <div class="controls">
+            <button class="btn btn-primary" id="btnRun">▶ Ejecutar pipeline</button>
+            <button class="btn btn-secondary" id="btnReset" disabled>Reiniciar</button>
+            <div class="speed-selector">
+                <button class="speed-btn active" data-speed="1">1×</button>
+                <button class="speed-btn" data-speed="2">2×</button>
+                <button class="speed-btn" data-speed="5">5×</button>
+                <button class="speed-btn" data-speed="20">20×</button>
+            </div>
+        </div>
+        <div class="status-indicator">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Listo para ejecutar</span>
+        </div>
+    </div>
+
+    <!-- Pipeline Visualization -->
+    <div class="pipeline-viz">
+        <h2>Pipeline Medallion — progreso en tiempo real</h2>
+        <div class="pipeline-stages">
+            <div class="stage" data-stage="extract">
+                <div class="stage-name">01 Extract</div>
+                <div class="stage-label">CSV</div>
+                <div class="stage-counter" data-counter="extract">0</div>
+                <div class="stage-unit">records</div>
+                <span class="stage-arrow">→</span>
+            </div>
+            <div class="stage" data-stage="bronze">
+                <div class="stage-name">02 Bronze</div>
+                <div class="stage-label">S3 Parquet</div>
+                <div class="stage-counter" data-counter="bronze">0</div>
+                <div class="stage-unit">records</div>
+                <span class="stage-arrow">→</span>
+            </div>
+            <div class="stage" data-stage="validate">
+                <div class="stage-name">03 Validate</div>
+                <div class="stage-label">Pydantic + DQ</div>
+                <div class="stage-counter" data-counter="validate">0</div>
+                <div class="stage-unit">checked</div>
+                <span class="stage-arrow">→</span>
+            </div>
+            <div class="stage" data-stage="transform">
+                <div class="stage-name">04 Transform</div>
+                <div class="stage-label">Normalize</div>
+                <div class="stage-counter" data-counter="transform">0</div>
+                <div class="stage-unit">records</div>
+                <span class="stage-arrow">→</span>
+            </div>
+            <div class="stage" data-stage="load">
+                <div class="stage-name">05 Load</div>
+                <div class="stage-label">PostgreSQL</div>
+                <div class="stage-counter" data-counter="load">0</div>
+                <div class="stage-unit">records</div>
+                <span class="stage-arrow">→</span>
+            </div>
+            <div class="stage" data-stage="gold">
+                <div class="stage-name">06 Gold</div>
+                <div class="stage-label">MViews</div>
+                <div class="stage-counter" data-counter="gold">0</div>
+                <div class="stage-unit">refreshed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metrics Grid -->
+    <div class="metrics-grid">
+        <div class="metric primary">
+            <div class="metric-label">Extraídos</div>
+            <div class="metric-value" id="mExtracted">0</div>
+            <div class="metric-sub">ldp_records_extracted_total</div>
+        </div>
+        <div class="metric success">
+            <div class="metric-label">Válidos</div>
+            <div class="metric-value" id="mValid">0</div>
+            <div class="metric-sub">pasaron Pydantic + DQ</div>
+        </div>
+        <div class="metric danger">
+            <div class="metric-label">Rechazados</div>
+            <div class="metric-value" id="mRejected">0</div>
+            <div class="metric-sub">ldp_records_quarantined_total</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Cargados</div>
+            <div class="metric-value" id="mLoaded">0</div>
+            <div class="metric-sub">COPY bulk en PostgreSQL</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Duración</div>
+            <div class="metric-value" id="mDuration">0<span style="font-size:1rem;color:var(--text-muted);">s</span></div>
+            <div class="metric-sub">total flow</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Throughput</div>
+            <div class="metric-value" id="mThroughput">0<span style="font-size:1rem;color:var(--text-muted);">/s</span></div>
+            <div class="metric-sub">pico de escritura</div>
+        </div>
+    </div>
+
+    <!-- Logs -->
+    <div class="logs-section">
+        <div class="logs-header">
+            <h2>Logs estructurados (structlog → JSON)</h2>
+            <span class="count" id="logCount">0 líneas</span>
+        </div>
+        <div class="logs" id="logs">
+            <div class="log-line">
+                <span class="log-time">--:--:--</span>
+                <span class="log-level info">INFO</span>
+                <span class="log-event">pipeline.idle</span>
+                <span class="log-meta">Presiona <span class="val">Ejecutar pipeline</span> para comenzar</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary (shows when done) -->
+    <div class="summary-card" id="summary">
+        <h2>Flow completado exitosamente</h2>
+        <p>El pipeline procesó el batch completo. Bronze persistido, Silver normalizado, PostgreSQL actualizado, materialized views refrescadas.</p>
+        <div class="summary-stats">
+            <div class="summary-stat"><div class="summary-stat-value" id="sExtracted">-</div><div class="summary-stat-label">Extraídos</div></div>
+            <div class="summary-stat"><div class="summary-stat-value" id="sValid">-</div><div class="summary-stat-label">Válidos</div></div>
+            <div class="summary-stat"><div class="summary-stat-value" id="sRejected">-</div><div class="summary-stat-label">Cuarentena</div></div>
+            <div class="summary-stat"><div class="summary-stat-value" id="sLoaded">-</div><div class="summary-stat-label">Cargados</div></div>
+            <div class="summary-stat"><div class="summary-stat-value" id="sDuration">-</div><div class="summary-stat-label">Duración</div></div>
+            <div class="summary-stat"><div class="summary-stat-value" id="sThroughput">-</div><div class="summary-stat-label">Rows/s peak</div></div>
+        </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="two-col">
+        <div class="panel">
+            <h2>Throughput por etapa <span class="tag">Prometheus</span></h2>
+            <div class="chart-container"><canvas id="chartThroughput"></canvas></div>
+        </div>
+        <div class="panel">
+            <h2>Calidad de datos <span class="tag">DQ rules</span></h2>
+            <div class="chart-container"><canvas id="chartQuality"></canvas></div>
+        </div>
+    </div>
+
+    <!-- Quarantine + DQ checks -->
+    <div class="two-col">
+        <div class="panel">
+            <h2>Muestra de cuarentena <span class="tag">Rejected</span></h2>
+            <table>
+                <thead><tr><th>Source ID</th><th>Campo</th><th>Error</th></tr></thead>
+                <tbody id="quarantineTable">
+                    <tr><td colspan="3" style="color:var(--text-muted); text-align:center;">Se poblará al ejecutar</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="panel">
+            <h2>DQ rule engine (YAML) <span class="tag">6 reglas</span></h2>
+            <table>
+                <thead><tr><th>Regla</th><th>Severidad</th><th>Resultado</th></tr></thead>
+                <tbody id="dqTable">
+                    <tr><td>document_id_not_null</td><td><span class="badge-sm badge-error">error</span></td><td>—</td></tr>
+                    <tr><td>document_hash_not_null</td><td><span class="badge-sm badge-error">error</span></td><td>—</td></tr>
+                    <tr><td>document_hash_is_sha256</td><td><span class="badge-sm badge-error">error</span></td><td>—</td></tr>
+                    <tr><td>document_type_in_taxonomy</td><td><span class="badge-sm badge-warn">warning</span></td><td>—</td></tr>
+                    <tr><td>jurisdiction_not_null</td><td><span class="badge-sm badge-error">error</span></td><td>—</td></tr>
+                    <tr><td>row_count_reasonable</td><td><span class="badge-sm badge-error">error</span></td><td>—</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SQL Playground -->
+    <div class="sql-playground">
+        <div class="sql-header">
+            <h2>Queries contra PostgreSQL — ejecútalos</h2>
+            <p>Los mismos queries que el benchmark real corre post-load. Tabs para explorar distintos patrones.</p>
+        </div>
+        <div class="sql-tabs">
+            <button class="sql-tab active" data-query="0">count_documents</button>
+            <button class="sql-tab" data-query="1">top_counterparties</button>
+            <button class="sql-tab" data-query="2">pg_stat_statements</button>
+            <button class="sql-tab" data-query="3">mv_monthly_revenue</button>
+            <button class="sql-tab" data-query="4">fuzzy_search</button>
+        </div>
+        <div class="sql-body" id="sqlBody">
+            <div class="sql-query" id="sqlQuery"></div>
+            <div class="sql-meta" id="sqlMeta"></div>
+            <table><thead id="sqlThead"></thead><tbody id="sqlTbody"></tbody></table>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    <div class="container">
+        Esta demo corre 100% client-side sobre datos sintéticos del <code>seed_data.py</code>.
+        El pipeline real (Docker, PostgreSQL, Prefect) se levanta con <code>bash scripts/setup.sh</code>.
+        · <a href="https://github.com/henriquezbh5-cpu/legaldataplatform">Ver código completo en GitHub</a>
+    </div>
+</footer>
+
+<script>
+// ====================================================================
+// PIPELINE SIMULATION DATA
+// ====================================================================
+
+const TOTAL_RECORDS = 5000;
+const REJECTED = 50;
+const VALID = TOTAL_RECORDS - REJECTED;
+
+const STAGES = [
+    { id: 'extract',   label: 'Extract',    target: TOTAL_RECORDS, duration: 3000, color: '#3b82f6' },
+    { id: 'bronze',    label: 'Bronze',     target: TOTAL_RECORDS, duration: 1800, color: '#b45309' },
+    { id: 'validate',  label: 'Validate',   target: TOTAL_RECORDS, duration: 2500, color: '#f59e0b' },
+    { id: 'transform', label: 'Transform',  target: VALID,         duration: 1500, color: '#8b5cf6' },
+    { id: 'load',      label: 'Load',       target: VALID,         duration: 3500, color: '#64748b' },
+    { id: 'gold',      label: 'Gold',       target: 2,             duration: 800,  color: '#d97706' },
+];
+
+const QUARANTINE_SAMPLES = [
+    { id: 'DOC-001423', field: 'document_date',  error: 'Input should be a valid date' },
+    { id: 'DOC-002881', field: 'source_hash',    error: 'String should match pattern ^[a-f0-9]{64}$' },
+    { id: 'DOC-003217', field: 'title',          error: 'String should have at least 1 character' },
+    { id: 'DOC-004056', field: 'jurisdiction',   error: 'Field required' },
+    { id: 'DOC-000512', field: 'document_type',  error: 'Value must be uppercase' },
+    { id: 'DOC-001890', field: 'source_id',      error: 'String should have at least 1 character' },
+    { id: 'DOC-002334', field: 'document_date',  error: 'Future date not permitted by business rule' },
+];
+
+const LOG_SCRIPT = [
+    { t: 0,    level: 'info', event: 'flow.start', msg: 'pipeline=legal_ingestion run_id=20260424T153022' },
+    { t: 100,  level: 'info', event: 'csv_extractor.start', msg: 'path=data/samples/legal_documents.csv' },
+    { t: 400,  level: 'info', event: 'csv_extractor.batch', msg: 'batch_id=a3f2c9 size=1000 offset=0' },
+    { t: 800,  level: 'info', event: 'csv_extractor.batch', msg: 'batch_id=b7e1d4 size=1000 offset=1000' },
+    { t: 1200, level: 'info', event: 'csv_extractor.batch', msg: 'batch_id=c4a9f3 size=1000 offset=2000' },
+    { t: 1600, level: 'info', event: 'csv_extractor.batch', msg: 'batch_id=d8b2e7 size=1000 offset=3000' },
+    { t: 2000, level: 'info', event: 'csv_extractor.batch', msg: 'batch_id=e5c3a1 size=1000 offset=4000' },
+    { t: 2400, level: 'info', event: 'csv_extractor.done', msg: 'total=5000' },
+    { t: 2600, level: 'info', event: 's3_loader.writing', msg: 'dataset=legal_documents bucket=bronze' },
+    { t: 3300, level: 'info', event: 's3_loader.written', msg: 'rows=5000 compression=snappy partition=ingestion_date=2026-04-24' },
+    { t: 3600, level: 'info', event: 'pydantic.validate_start', msg: 'schema=LegalDocumentSchema batch_size=5000' },
+    { t: 4400, level: 'warn', event: 'normalizer.rejection', msg: 'source_id=DOC-001423 field=document_date err="Input should be a valid date"' },
+    { t: 4600, level: 'warn', event: 'normalizer.rejection', msg: 'source_id=DOC-002881 field=source_hash err="pattern mismatch"' },
+    { t: 4800, level: 'warn', event: 'normalizer.rejection', msg: 'source_id=DOC-003217 field=title err="string too short"' },
+    { t: 5200, level: 'info', event: 'normalizer.summary', msg: 'schema=LegalDocumentSchema valid=4950 rejected=50 rate=0.0100' },
+    { t: 5400, level: 'info', event: 'dq.suite_start', msg: 'suite=legal_documents_silver rules=6' },
+    { t: 5600, level: 'success', event: 'dq.rule_passed', msg: 'rule=document_id_not_null failed=0' },
+    { t: 5700, level: 'success', event: 'dq.rule_passed', msg: 'rule=document_hash_not_null failed=0' },
+    { t: 5800, level: 'success', event: 'dq.rule_passed', msg: 'rule=document_hash_is_sha256 failed=0' },
+    { t: 5900, level: 'success', event: 'dq.rule_passed', msg: 'rule=document_type_in_taxonomy failed=12 severity=warning' },
+    { t: 6000, level: 'success', event: 'dq.rule_passed', msg: 'rule=jurisdiction_not_null failed=0' },
+    { t: 6100, level: 'success', event: 'dq.rule_passed', msg: 'rule=row_count_reasonable count=4950' },
+    { t: 6300, level: 'info', event: 'quarantine.written', msg: 'bucket=quarantine rows=50 path=legal_ingestion/2026-04-24/' },
+    { t: 6500, level: 'info', event: 'transformer.normalize_start', msg: 'rows=4950' },
+    { t: 7000, level: 'info', event: 'transformer.enrich', msg: 'added=risk_tier,row_hash rows=4950' },
+    { t: 7300, level: 'info', event: 'transformer.done', msg: 'duration_ms=760' },
+    { t: 7500, level: 'info', event: 'pg_loader.copy_start', msg: 'table=legal_documents_stg' },
+    { t: 8200, level: 'info', event: 'pg_loader.copied', msg: 'table=legal_documents_stg rows=4950 throughput=147619/s' },
+    { t: 8500, level: 'info', event: 'pg_loader.upsert', msg: 'target=legal_documents conflict=source_system,source_id,document_date' },
+    { t: 10500,level: 'info', event: 'pg_loader.upserted', msg: 'table=legal_documents inserted=4200 updated=750' },
+    { t: 10800,level: 'info', event: 'gold.refresh_start', msg: 'view=mv_monthly_revenue_per_counterparty concurrent=true' },
+    { t: 11400,level: 'info', event: 'gold.refresh_done', msg: 'view=mv_monthly_revenue_per_counterparty duration_ms=580' },
+    { t: 11500,level: 'info', event: 'gold.refresh_start', msg: 'view=mv_active_regulations_by_jurisdiction' },
+    { t: 11700,level: 'info', event: 'gold.refresh_done', msg: 'view=mv_active_regulations_by_jurisdiction duration_ms=195' },
+    { t: 11800,level: 'success', event: 'flow.summary', msg: 'extracted=5000 valid=4950 rejected=50 loaded=4950 duration=11.8s' },
+    { t: 11900,level: 'success', event: 'flow.done', msg: 'status=COMPLETED' },
+];
+
+const SQL_QUERIES = [
+    {
+        sql: `<span class="cm">-- Total documentos últimos 30 días</span>
+<span class="kw">SELECT</span> <span class="fn">count</span>(*) <span class="kw">AS</span> total,
+       <span class="fn">min</span>(document_date) <span class="kw">AS</span> earliest,
+       <span class="fn">max</span>(document_date) <span class="kw">AS</span> latest
+  <span class="kw">FROM</span> legal_documents
+ <span class="kw">WHERE</span> document_date >= <span class="str">CURRENT_DATE</span> - <span class="kw">INTERVAL</span> <span class="str">'30 days'</span>;`,
+        meta: 'p50: 12.34 ms · p95: 18.90 ms · Cache hit: 99.87% · Partition pruning: 1 de 18',
+        head: ['total', 'earliest', 'latest'],
+        rows: [['4950', '2026-04-01', '2026-04-24']],
+    },
+    {
+        sql: `<span class="cm">-- Top 5 counterparties por revenue últimos 90 días</span>
+<span class="kw">SELECT</span> c.name, c.country_code,
+       <span class="fn">count</span>(t.id)    <span class="kw">AS</span> txn_count,
+       <span class="fn">sum</span>(t.amount) <span class="kw">AS</span> revenue
+  <span class="kw">FROM</span> transactions t
+  <span class="kw">JOIN</span> counterparties c <span class="kw">ON</span> c.id = t.counterparty_id
+ <span class="kw">WHERE</span> t.transaction_date >= <span class="str">CURRENT_DATE</span> - <span class="kw">INTERVAL</span> <span class="str">'90 days'</span>
+   <span class="kw">AND</span> t.transaction_type = <span class="str">'INVOICE'</span>
+ <span class="kw">GROUP BY</span> c.id, c.name, c.country_code
+ <span class="kw">ORDER BY</span> revenue <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="num">5</span>;`,
+        meta: 'p50: 45.67 ms · p95: 72.13 ms · Usa ix_txn_counterparty_recent (covering index)',
+        head: ['name', 'country_code', 'txn_count', 'revenue'],
+        rows: [
+            ['ACME CORP HOLDINGS LLC', 'US', '847', '$ 18,294,502.33'],
+            ['GLOBAL TRADE PARTNERS S.A.', 'BR', '612', '$ 14,089,114.50'],
+            ['NORTH STAR LOGISTICS LTD', 'GB', '593', '$ 11,746,881.20'],
+            ['MERIDIAN INDUSTRIES GMBH', 'DE', '521', '$  9,983,207.00'],
+            ['IBERIA COMMERCIAL GROUP SL', 'ES', '487', '$  8,712,554.88'],
+        ],
+    },
+    {
+        sql: `<span class="cm">-- Top queries más lentos del último ciclo</span>
+<span class="kw">SELECT</span> queryid,
+       calls,
+       <span class="fn">round</span>(mean_exec_time::numeric, <span class="num">2</span>) <span class="kw">AS</span> mean_ms,
+       <span class="fn">round</span>(<span class="num">100</span> * shared_blks_hit::numeric /
+             <span class="fn">nullif</span>(shared_blks_hit + shared_blks_read, <span class="num">0</span>), <span class="num">2</span>) <span class="kw">AS</span> cache_hit_pct
+  <span class="kw">FROM</span> pg_stat_statements
+ <span class="kw">WHERE</span> calls > <span class="num">10</span>
+ <span class="kw">ORDER BY</span> mean_exec_time <span class="kw">DESC</span>
+ <span class="kw">LIMIT</span> <span class="num">5</span>;`,
+        meta: '6 queries tracked · cache_hit agregado: 99.21% · autovacuum last: 2 min ago',
+        head: ['queryid', 'calls', 'mean_ms', 'cache_hit_pct'],
+        rows: [
+            ['-8823944123',   '142', '45.67', '95.20'],
+            ['4712883291',    '847', '28.13', '99.88'],
+            ['-2193847112',   '213', '19.50', '99.45'],
+            ['9882374192',    '1024', '12.34', '99.87'],
+            ['3481729384',    '68', '8.90',   '99.12'],
+        ],
+    },
+    {
+        sql: `<span class="cm">-- Revenue agregado mensual (desde materialized view)</span>
+<span class="kw">SELECT</span> month,
+       <span class="fn">count</span>(<span class="kw">DISTINCT</span> counterparty_external_id) <span class="kw">AS</span> counterparties,
+       <span class="fn">sum</span>(transaction_count)  <span class="kw">AS</span> txns,
+       <span class="fn">sum</span>(total_amount)       <span class="kw">AS</span> revenue
+  <span class="kw">FROM</span> mv_monthly_revenue_per_counterparty
+ <span class="kw">WHERE</span> currency = <span class="str">'USD'</span>
+ <span class="kw">GROUP BY</span> month
+ <span class="kw">ORDER BY</span> month <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="num">6</span>;`,
+        meta: 'p50: 2.15 ms · p95: 3.80 ms · Scan de MView pre-agregada, no va a transactions',
+        head: ['month', 'counterparties', 'txns', 'revenue'],
+        rows: [
+            ['2026-04-01', '487', '3,214', '$ 64,892,113.50'],
+            ['2026-03-01', '502', '3,891', '$ 71,205,880.12'],
+            ['2026-02-01', '498', '3,542', '$ 68,114,502.00'],
+            ['2026-01-01', '491', '3,318', '$ 65,927,311.77'],
+            ['2025-12-01', '476', '4,122', '$ 82,558,940.33'],
+            ['2025-11-01', '482', '3,717', '$ 69,884,220.95'],
+        ],
+    },
+    {
+        sql: `<span class="cm">-- Búsqueda fuzzy de entidades (usa índice GIN + pg_trgm)</span>
+<span class="kw">SELECT</span> id,
+       legal_name,
+       <span class="fn">similarity</span>(legal_name, <span class="str">'acme corp'</span>) <span class="kw">AS</span> sim
+  <span class="kw">FROM</span> legal_entities
+ <span class="kw">WHERE</span> legal_name % <span class="str">'acme corp'</span>
+ <span class="kw">ORDER BY</span> sim <span class="kw">DESC</span>
+ <span class="kw">LIMIT</span> <span class="num">5</span>;`,
+        meta: 'p50: 8.20 ms · Usa ix_entity_legal_name_gin · Evita full-table scan',
+        head: ['id', 'legal_name', 'sim'],
+        rows: [
+            ['a1f3...e892', 'ACME CORP HOLDINGS LLC', '0.85'],
+            ['3b8c...2e14', 'ACME CORPORATION INC', '0.80'],
+            ['f9e2...a471', 'ACME CORP OF AMERICA', '0.77'],
+            ['2d4a...b5c8', 'ACME COMMERCIAL CORP', '0.62'],
+            ['8e1b...3d92', 'ACME COMPANY LLC', '0.55'],
+        ],
+    },
+];
+
+// ====================================================================
+// STATE
+// ====================================================================
+let isRunning = false;
+let speed = 1;
+let animationFrameIds = [];
+let timers = [];
+let stageCounts = {};
+let logCounter = 0;
+let startTime = 0;
+
+// ====================================================================
+// DOM HELPERS
+// ====================================================================
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+function addLog(level, event, msg) {
+    const now = new Date();
+    const time = now.toTimeString().slice(0, 8);
+    const logs = $('#logs');
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `
+        <span class="log-time">${time}</span>
+        <span class="log-level ${level}">${level.toUpperCase()}</span>
+        <span class="log-event">${event}</span>
+        <span class="log-meta">${msg}</span>
+    `;
+    logs.appendChild(line);
+    logs.scrollTop = logs.scrollHeight;
+    logCounter++;
+    $('#logCount').textContent = `${logCounter} líneas`;
+}
+
+function setStatus(text, type = '') {
+    $('#statusText').textContent = text;
+    $('#statusDot').className = 'status-dot ' + type;
+}
+
+function animateCounter(el, from, to, duration) {
+    const start = performance.now();
+    function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const value = Math.round(from + (to - from) * easeOut(progress));
+        el.textContent = value.toLocaleString();
+        if (progress < 1) {
+            const id = requestAnimationFrame(tick);
+            animationFrameIds.push(id);
+        }
+    }
+    const id = requestAnimationFrame(tick);
+    animationFrameIds.push(id);
+}
+
+function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+function setStage(stageId, state) {
+    const el = document.querySelector(`.stage[data-stage="${stageId}"]`);
+    if (el) {
+        el.classList.remove('active', 'done');
+        if (state) el.classList.add(state);
+    }
+}
+
+// ====================================================================
+// RUN PIPELINE
+// ====================================================================
+function runPipeline() {
+    if (isRunning) return;
+    isRunning = true;
+    startTime = performance.now();
+    $('#btnRun').disabled = true;
+    $('#btnReset').disabled = false;
+    $('#summary').classList.remove('show');
+    resetVisuals();
+    setStatus('Ejecutando...', 'running');
+
+    // Schedule logs
+    LOG_SCRIPT.forEach(entry => {
+        const timer = setTimeout(() => {
+            addLog(entry.level, entry.event, entry.msg);
+        }, entry.t / speed);
+        timers.push(timer);
+    });
+
+    // Schedule stage animations
+    let cumulativeTime = 0;
+    STAGES.forEach((stage, idx) => {
+        const startAt = cumulativeTime;
+        const finishAt = cumulativeTime + stage.duration;
+        cumulativeTime = finishAt;
+
+        timers.push(setTimeout(() => {
+            setStage(stage.id, 'active');
+            const counterEl = document.querySelector(`[data-counter="${stage.id}"]`);
+            animateCounter(counterEl, 0, stage.target, stage.duration / speed);
+        }, startAt / speed));
+
+        timers.push(setTimeout(() => {
+            setStage(stage.id, 'done');
+        }, finishAt / speed));
+    });
+
+    // Update global metrics during run
+    const totalMs = cumulativeTime;
+    const metricsEnd = totalMs;
+    const metricsStart = performance.now();
+    const metricsTimer = setInterval(() => {
+        const elapsed = (performance.now() - metricsStart) * speed;
+        const progress = Math.min(elapsed / totalMs, 1);
+
+        $('#mExtracted').textContent = Math.round(TOTAL_RECORDS * Math.min(progress * 2.5, 1)).toLocaleString();
+        $('#mValid').textContent     = Math.round(VALID * Math.min(Math.max(progress - 0.35, 0) * 2, 1)).toLocaleString();
+        $('#mRejected').textContent  = Math.round(REJECTED * Math.min(Math.max(progress - 0.35, 0) * 2, 1)).toLocaleString();
+        $('#mLoaded').textContent    = Math.round(VALID * Math.min(Math.max(progress - 0.65, 0) * 3, 1)).toLocaleString();
+        $('#mDuration').innerHTML    = (elapsed / 1000).toFixed(1) + '<span style="font-size:1rem;color:var(--text-muted);">s</span>';
+
+        const throughput = progress > 0.65 && progress < 0.95 ? 147619 : (progress >= 0.95 ? 147619 : 0);
+        $('#mThroughput').innerHTML  = throughput.toLocaleString() + '<span style="font-size:1rem;color:var(--text-muted);">/s</span>';
+
+        if (progress >= 1) { clearInterval(metricsTimer); }
+    }, 100);
+    timers.push({ clear: () => clearInterval(metricsTimer) });
+
+    // Populate quarantine progressively
+    timers.push(setTimeout(() => {
+        const tbody = $('#quarantineTable');
+        tbody.innerHTML = '';
+        QUARANTINE_SAMPLES.forEach((q, i) => {
+            timers.push(setTimeout(() => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="mono">${q.id}</td><td>${q.field}</td><td style="color:#fca5a5;">${q.error}</td>`;
+                tbody.appendChild(tr);
+            }, (i * 100) / speed));
+        });
+    }, 4400 / speed));
+
+    // Populate DQ results
+    const dqStarts = [5600, 5700, 5800, 5900, 6000, 6100];
+    const dqResults = [
+        { rule: 'document_id_not_null',     sev: 'error',   passed: true, failed: 0 },
+        { rule: 'document_hash_not_null',   sev: 'error',   passed: true, failed: 0 },
+        { rule: 'document_hash_is_sha256',  sev: 'error',   passed: true, failed: 0 },
+        { rule: 'document_type_in_taxonomy',sev: 'warning', passed: true, failed: 12 },
+        { rule: 'jurisdiction_not_null',    sev: 'error',   passed: true, failed: 0 },
+        { rule: 'row_count_reasonable',     sev: 'error',   passed: true, failed: 0 },
+    ];
+    dqResults.forEach((dq, i) => {
+        timers.push(setTimeout(() => {
+            const rows = $$('#dqTable tr');
+            const row = rows[i];
+            if (row) {
+                const failedText = dq.failed > 0 ? ` (${dq.failed} fallas)` : '';
+                row.cells[2].innerHTML = `<span class="badge-sm badge-ok">PASS${failedText}</span>`;
+            }
+        }, dqStarts[i] / speed));
+    });
+
+    // Finalize
+    timers.push(setTimeout(() => {
+        finalizeRun();
+    }, (totalMs + 200) / speed));
+}
+
+function finalizeRun() {
+    isRunning = false;
+    setStatus('Flow completado', 'done');
+    $('#btnRun').disabled = false;
+
+    // Final metrics
+    $('#mExtracted').textContent = TOTAL_RECORDS.toLocaleString();
+    $('#mValid').textContent     = VALID.toLocaleString();
+    $('#mRejected').textContent  = REJECTED.toLocaleString();
+    $('#mLoaded').textContent    = VALID.toLocaleString();
+    $('#mDuration').innerHTML    = '11.8<span style="font-size:1rem;color:var(--text-muted);">s</span>';
+    $('#mThroughput').innerHTML  = '147,619<span style="font-size:1rem;color:var(--text-muted);">/s</span>';
+
+    // Summary card
+    $('#sExtracted').textContent = TOTAL_RECORDS.toLocaleString();
+    $('#sValid').textContent     = VALID.toLocaleString();
+    $('#sRejected').textContent  = REJECTED.toLocaleString();
+    $('#sLoaded').textContent    = VALID.toLocaleString();
+    $('#sDuration').textContent  = '11.8 s';
+    $('#sThroughput').textContent= '147,619';
+    $('#summary').classList.add('show');
+
+    // Show charts
+    renderCharts();
+    renderSQL(0);
+}
+
+function resetVisuals() {
+    animationFrameIds.forEach(id => cancelAnimationFrame(id));
+    animationFrameIds = [];
+    STAGES.forEach(s => {
+        setStage(s.id, null);
+        document.querySelector(`[data-counter="${s.id}"]`).textContent = '0';
+    });
+    $('#mExtracted').textContent = '0';
+    $('#mValid').textContent     = '0';
+    $('#mRejected').textContent  = '0';
+    $('#mLoaded').textContent    = '0';
+    $('#mDuration').innerHTML    = '0<span style="font-size:1rem;color:var(--text-muted);">s</span>';
+    $('#mThroughput').innerHTML  = '0<span style="font-size:1rem;color:var(--text-muted);">/s</span>';
+    $('#logs').innerHTML = '';
+    logCounter = 0;
+    $('#logCount').textContent = '0 líneas';
+    $('#summary').classList.remove('show');
+
+    // Reset quarantine and DQ tables
+    $('#quarantineTable').innerHTML = '<tr><td colspan="3" style="color:var(--text-muted); text-align:center;">Se poblará al ejecutar</td></tr>';
+    $$('#dqTable tr').forEach(row => { if (row.cells[2]) row.cells[2].textContent = '—'; });
+}
+
+function resetPipeline() {
+    timers.forEach(t => {
+        if (typeof t === 'number') clearTimeout(t);
+        else if (t && typeof t.clear === 'function') t.clear();
+    });
+    timers = [];
+    isRunning = false;
+    $('#btnRun').disabled = false;
+    $('#btnReset').disabled = true;
+    setStatus('Listo para ejecutar', '');
+    resetVisuals();
+    if (chartThroughput) chartThroughput.destroy();
+    if (chartQuality) chartQuality.destroy();
+    chartThroughput = null;
+    chartQuality = null;
+    addLog('info', 'pipeline.reset', 'Estado reiniciado');
+}
+
+// ====================================================================
+// CHARTS
+// ====================================================================
+let chartThroughput = null;
+let chartQuality = null;
+
+function renderCharts() {
+    const ctx1 = document.getElementById('chartThroughput').getContext('2d');
+    chartThroughput = new Chart(ctx1, {
+        type: 'bar',
+        data: {
+            labels: ['Extract', 'Bronze', 'Validate', 'Transform', 'Load', 'Gold'],
+            datasets: [{
+                label: 'Rows/segundo',
+                data: [1667, 2778, 2000, 3300, 147619, 4950],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(180, 83, 9, 0.7)',
+                    'rgba(245, 158, 11, 0.7)',
+                    'rgba(139, 92, 246, 0.7)',
+                    'rgba(5, 150, 105, 0.7)',
+                    'rgba(217, 119, 6, 0.7)',
+                ],
+                borderRadius: 6,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => ctx.parsed.y.toLocaleString() + ' rows/s'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    type: 'logarithmic',
+                    grid: { color: '#334155' },
+                    ticks: { color: '#94a3b8', callback: v => v.toLocaleString() }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8' }
+                }
+            }
+        }
+    });
+
+    const ctx2 = document.getElementById('chartQuality').getContext('2d');
+    chartQuality = new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Válidos', 'Rechazados (quarantine)'],
+            datasets: [{
+                data: [VALID, REJECTED],
+                backgroundColor: ['rgba(5, 150, 105, 0.8)', 'rgba(220, 38, 38, 0.8)'],
+                borderColor: ['#059669', '#dc2626'],
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#e2e8f0' } },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const pct = ((ctx.parsed / TOTAL_RECORDS) * 100).toFixed(2);
+                            return `${ctx.label}: ${ctx.parsed.toLocaleString()} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ====================================================================
+// SQL PLAYGROUND
+// ====================================================================
+function renderSQL(idx) {
+    const q = SQL_QUERIES[idx];
+    $('#sqlQuery').innerHTML = q.sql;
+    $('#sqlMeta').textContent = q.meta;
+    $('#sqlThead').innerHTML = '<tr>' + q.head.map(h => `<th>${h}</th>`).join('') + '</tr>';
+    $('#sqlTbody').innerHTML = q.rows.map(row =>
+        '<tr>' + row.map((cell, i) => {
+            const cls = (typeof cell === 'string' && (cell.includes('$') || /^\d[\d,]*$/.test(cell))) ? 'mono' : '';
+            return `<td class="${cls}">${cell}</td>`;
+        }).join('') + '</tr>'
+    ).join('');
+
+    $$('.sql-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+}
+
+// ====================================================================
+// EVENT WIRING
+// ====================================================================
+$('#btnRun').addEventListener('click', runPipeline);
+$('#btnReset').addEventListener('click', resetPipeline);
+
+$$('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        $$('.speed-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        speed = parseInt(btn.dataset.speed, 10);
+    });
+});
+
+$$('.sql-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        renderSQL(parseInt(tab.dataset.query, 10));
+    });
+});
+
+// Render initial SQL so the panel is not empty
+renderSQL(0);
+</script>
+
+</body>
+</html>
