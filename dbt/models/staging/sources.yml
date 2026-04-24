@@ -1,0 +1,38 @@
+version: 2
+
+sources:
+  - name: public
+    database: legaldata
+    schema: public
+    description: "Operational tables produced by the Python pipelines."
+    tables:
+      - name: transactions
+        description: "Financial transactions, partitioned monthly by transaction_date."
+        loaded_at_field: ingested_at
+        freshness:
+          warn_after: {count: 12, period: hour}
+          error_after: {count: 24, period: hour}
+        columns:
+          - name: id
+            description: "Surrogate UUID"
+            tests: [not_null]
+          - name: transaction_date
+            description: "Partition key"
+            tests: [not_null]
+          - name: reference
+            tests: [not_null]
+
+      - name: counterparties
+        description: "Unified counterparties from CSV seed and GLEIF."
+        columns:
+          - name: external_id
+            tests:
+              - not_null
+              - unique
+
+      - name: legal_documents
+        description: "Unified legal documents from CSV seed and SEC EDGAR filings."
+        loaded_at_field: ingested_at
+        columns:
+          - name: source_hash
+            tests: [not_null]

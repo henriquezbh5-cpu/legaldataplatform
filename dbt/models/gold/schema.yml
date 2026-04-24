@@ -1,0 +1,66 @@
+version: 2
+
+models:
+  - name: gold_monthly_revenue_by_counterparty
+    description: |
+      Monthly revenue rollup per counterparty + currency + country.
+      Primary consumer: BI dashboards, finance reporting.
+    columns:
+      - name: counterparty_id
+        tests: [not_null]
+      - name: month
+        tests: [not_null]
+      - name: currency
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "length(currency) = 3"
+              config:
+                severity: warn
+      - name: transaction_count
+        tests: [not_null]
+      - name: total_amount
+        tests: [not_null]
+
+    # Compound uniqueness handled by the unique index in the config
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [counterparty_id, month, currency]
+
+  - name: gold_counterparty_risk_distribution
+    description: |
+      Counterparty distribution by country and risk tier. Driven by the
+      `risk_score` field on `counterparties`.
+    columns:
+      - name: country_code
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "length(country_code) = 2"
+      - name: risk_tier
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['UNKNOWN', 'LOW', 'MODERATE', 'HIGH', 'CRITICAL']
+      - name: counterparty_count
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "counterparty_count > 0"
+
+  - name: gold_legal_documents_by_jurisdiction
+    description: |
+      Monthly legal-document counts by jurisdiction and type, with a
+      SEC EDGAR split for source transparency.
+    columns:
+      - name: jurisdiction
+        tests: [not_null]
+      - name: document_type
+        tests: [not_null]
+      - name: document_month
+        tests: [not_null]
+      - name: documents
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "documents > 0"

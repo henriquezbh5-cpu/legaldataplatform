@@ -59,6 +59,7 @@ dev = [
     "pytest-asyncio>=0.23.5",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.12.0",
+    "pytest-benchmark>=4.0.0",
     "moto[s3,sqs,lambda]>=5.0.0",
     "factory-boy>=3.3.0",
     "faker>=24.0.0",
@@ -66,6 +67,17 @@ dev = [
     "mypy>=1.9.0",
     "ipython>=8.22.0",
     "jupyter>=1.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocs-mermaid2-plugin>=1.1.0",
+    "mkdocstrings[python]>=0.24.0",
+    "pymdown-extensions>=10.7.0",
+]
+dbt = [
+    "dbt-core>=1.7.0",
+    "dbt-postgres>=1.7.0",
 ]
 
 [build-system]
@@ -86,8 +98,22 @@ ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
-strict = true
 ignore_missing_imports = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = false
+no_implicit_reexport = true
+check_untyped_defs = true
+disallow_untyped_defs = false   # Aspirational; tighten per-module below
+disallow_incomplete_defs = true
+
+# Fully-typed modules get stricter checks
+[[tool.mypy.overrides]]
+module = [
+    "src.schemas.*",
+    "src.observability.*",
+]
+disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

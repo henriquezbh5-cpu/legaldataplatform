@@ -1,0 +1,36 @@
+name: 'legaldataplatform'
+version: '0.1.0'
+config-version: 2
+
+profile: 'legaldataplatform'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Ownership / docs visible in the generated docs site
+models:
+  legaldataplatform:
+    +persist_docs:
+      relation: true
+      columns: true
+
+    staging:
+      +materialized: view
+      +schema: staging
+
+    intermediate:
+      +materialized: ephemeral
+
+    gold:
+      +materialized: table
+      +schema: gold
+      +tags: ["gold", "bi"]
