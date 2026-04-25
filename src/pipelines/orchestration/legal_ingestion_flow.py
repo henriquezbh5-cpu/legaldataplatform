@@ -248,7 +248,7 @@ async def legal_ingestion_flow(
             return {"extracted": 0, "loaded": 0}
 
         with pipeline_duration.labels(pipeline="legal_ingestion", stage="bronze").time():
-            await persist_to_bronze(batches, dataset="legal_documents", pipeline="legal_ingestion")
+            persist_to_bronze(batches, dataset="legal_documents", pipeline="legal_ingestion")
 
         with pipeline_duration.labels(pipeline="legal_ingestion", stage="normalize").time():
             valid, rejected = normalize_and_validate(
