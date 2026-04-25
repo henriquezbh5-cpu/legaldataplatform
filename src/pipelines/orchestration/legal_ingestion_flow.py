@@ -121,10 +121,24 @@ def normalize_and_validate(
 
 
 @task(log_prints=True)
-async def load_legal_documents(records: list[dict[str, Any]], pipeline: str) -> int:
-    """Bulk-load normalized legal documents into PostgreSQL."""
+def load_legal_documents(records: list[dict[str, Any]], pipeline: str) -> int:
+    """Bulk-load normalized legal documents into PostgreSQL.
+
+    Uses sync psycopg + COPY to avoid the asyncpg + Windows ProactorEventLoop
+    bug that hangs at COPY time. Functionally equivalent to the async loader.
+    """
     if not records:
         return 0
+
+    import io
+    import json
+    from datetime import date as date_type
+    from decimal import Decimal as DecimalType
+
+    import psycopg
+
+    from src.config import get_settings
+    from src.observability import records_loaded
 
     # Hydrate required DB-side fields
     now = datetime.utcnow()
@@ -146,22 +160,62 @@ async def load_legal_documents(records: list[dict[str, Any]], pipeline: str) -> 
         "metadata",
         "ingested_at",
     ]
-    # Strip any keys not in columns
     filtered = [{k: r.get(k) for k in columns} for r in records]
 
-    async with direct_session() as session:
-        loader = PostgresBulkLoader(
-            session=session,
-            table="legal_documents",
-            columns=columns,
-            pipeline=pipeline,
+    def _serialize(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, default=str)
+        if isinstance(value, (date_type, datetime)):
+            return value.isoformat()
+        if isinstance(value, DecimalType):
+            return str(value)
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        return str(value)
+
+    s = get_settings().postgres
+    dsn = f"host={s.host} port={s.port} user={s.user} password={s.password} dbname={s.db}"
+
+    col_list = ", ".join(columns)
+    set_clause = ", ".join(
+        f"{c} = EXCLUDED.{c}"
+        for c in columns
+        if c not in ("source_system", "source_id", "document_date")
+    )
+
+    with psycopg.connect(dsn) as conn, conn.cursor() as cur:
+        cur.execute(
+            "CREATE TEMP TABLE legal_documents_stg (LIKE legal_documents INCLUDING DEFAULTS) "
+            "ON COMMIT DROP"
         )
-        count = await loader.upsert_via_staging(
-            filtered,
-            conflict_columns=["source_system", "source_id", "document_date"],
-            update_columns=columns,
+
+        # Stream records into staging via COPY
+        copy_sql = f"COPY legal_documents_stg ({col_list}) FROM STDIN WITH (FORMAT csv)"
+        with cur.copy(copy_sql) as cp:
+            for rec in filtered:
+                row = [_serialize(rec.get(c)) for c in columns]
+                # psycopg's COPY needs CSV-escaped strings; build manually
+                buf = io.StringIO()
+                import csv as csv_mod
+
+                csv_mod.writer(buf, quoting=csv_mod.QUOTE_MINIMAL).writerow(row)
+                cp.write(buf.getvalue().encode("utf-8"))
+
+        # UPSERT from staging into the partitioned target
+        cur.execute(
+            f"""
+            INSERT INTO legal_documents ({col_list})
+            SELECT {col_list} FROM legal_documents_stg
+            ON CONFLICT (source_system, source_id, document_date)
+            DO UPDATE SET {set_clause}, updated_at = now()
+            """
         )
-    return count
+        conn.commit()
+
+    records_loaded.labels(target="legal_documents", pipeline=pipeline).inc(len(records))
+    return len(records)
 
 
 @task(log_prints=True)
@@ -284,7 +338,7 @@ async def legal_ingestion_flow(
             await persist_quarantine(rejected, pipeline="legal_ingestion")
 
         with pipeline_duration.labels(pipeline="legal_ingestion", stage="load").time():
-            loaded = await load_legal_documents(valid, pipeline="legal_ingestion")
+            loaded = load_legal_documents(valid, pipeline="legal_ingestion")
 
         with pipeline_duration.labels(pipeline="legal_ingestion", stage="gold").time():
             refresh_gold()
