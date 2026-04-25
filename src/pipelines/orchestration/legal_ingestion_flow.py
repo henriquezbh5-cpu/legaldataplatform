@@ -188,10 +188,32 @@ async def persist_quarantine(rejected: list[dict[str, Any]], pipeline: str) -> s
 
 
 @task
-async def refresh_gold() -> None:
-    """Refresh materialized views that serve the Gold analytical layer."""
-    async with direct_session() as session:
-        await session.execute(text("CALL refresh_analytical_views()"))
+def refresh_gold() -> None:
+    """Refresh materialized views that serve the Gold analytical layer.
+
+    Uses a synchronous psycopg connection to avoid an asyncpg + Windows
+    Proactor event-loop bug that surfaces when sessions are closed at
+    flow shutdown. Also handles the first-run case where the MView is
+    empty and CONCURRENTLY refresh would fail.
+    """
+    import psycopg
+
+    from src.config import get_settings
+
+    s = get_settings().postgres
+    dsn = f"host={s.host} port={s.port} user={s.user} password={s.password} dbname={s.db}"
+
+    with psycopg.connect(dsn, autocommit=True) as conn, conn.cursor() as cur:
+        # First-time bootstrap: a non-concurrent refresh populates the MView
+        # so subsequent CONCURRENTLY refreshes work.
+        cur.execute(
+            "SELECT relispopulated FROM pg_class WHERE relname = 'mv_monthly_revenue_per_counterparty'"
+        )
+        row = cur.fetchone()
+        if row and not row[0]:
+            cur.execute("REFRESH MATERIALIZED VIEW mv_monthly_revenue_per_counterparty")
+        # Now safe to run the procedure (which uses CONCURRENTLY internally)
+        cur.execute("CALL refresh_analytical_views()")
 
 
 # -----------------------------------------------------------------------------
@@ -265,7 +287,7 @@ async def legal_ingestion_flow(
             loaded = await load_legal_documents(valid, pipeline="legal_ingestion")
 
         with pipeline_duration.labels(pipeline="legal_ingestion", stage="gold").time():
-            await refresh_gold()
+            refresh_gold()
 
     summary = {
         "extracted": sum(b.size for b in batches),
