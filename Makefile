@@ -74,6 +74,9 @@ gleif:
 commercial:
 	python -m src.pipelines.orchestration.commercial_ingestion_flow
 
+api:
+	uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+
 test:
 	pytest
 

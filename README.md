@@ -187,6 +187,14 @@ sequenceDiagram
     Worker->>Prefect: Report success
 ```
 
+## Self-service ingestion UI
+
+For non-technical users, a FastAPI web app exposes the pipeline through a
+browser-friendly upload form. Run `make api` and open
+http://localhost:8000. Drop a CSV; the API detects the target schema by
+fuzzy-matching headers and triggers the corresponding pipeline. See
+[src/api/README.md](src/api/README.md) for details.
+
 ## Real source integrations
 
 Two production APIs are integrated with real rate limiting and identification:

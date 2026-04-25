@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LegalDataPlatform - Upload</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --success: #059669;
+  --warning: #f59e0b;
+  --error: #dc2626;
+}
+
+body {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+}
+
+header { max-width: 720px; width: 100%; margin-bottom: 32px; text-align: center; }
+header .badge {
+  display: inline-block;
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(37, 99, 235, 0.4);
+  color: #93c5fd;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+
+h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+header p { color: var(--text-muted); font-size: 1rem; max-width: 540px; margin: 0 auto; }
+
+main { max-width: 720px; width: 100%; }
+
+.dropzone {
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 60px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.dropzone.dragover {
+  border-color: var(--primary);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.dropzone svg { width: 48px; height: 48px; color: var(--primary); margin-bottom: 16px; }
+.dropzone h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 8px; }
+.dropzone p { color: var(--text-muted); font-size: 0.9rem; }
+.dropzone input[type="file"] { display: none; }
+
+.btn {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: background 0.15s;
+}
+.btn:hover:not(:disabled) { background: var(--primary-hover); }
+.btn:disabled { opacity: 0.6; cursor: wait; }
+
+.info {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  margin-top: 24px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.info strong { color: var(--text); }
+.info code {
+  background: rgba(255,255,255,0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.85em;
+  color: #93c5fd;
+}
+
+#result {
+  margin-top: 24px;
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+#result.show { display: block; }
+#result.success { border-color: rgba(5, 150, 105, 0.5); }
+#result.warning { border-color: rgba(245, 158, 11, 0.5); }
+#result.error { border-color: rgba(220, 38, 38, 0.5); }
+
+#result h3 { font-size: 1.1rem; margin-bottom: 12px; }
+#result h3 .ok { color: #34d399; }
+#result h3 .warn { color: #fbbf24; }
+#result h3 .err { color: #fca5a5; }
+
+#result table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.9rem; }
+#result td { padding: 6px 0; border-bottom: 1px solid var(--border); }
+#result td:first-child { color: var(--text-muted); width: 40%; }
+#result td:last-child { font-family: 'JetBrains Mono', Consolas, monospace; }
+#result tr:last-child td { border-bottom: 0; }
+
+#result .links { margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap; }
+#result .links a {
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 0.9rem;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(37, 99, 235, 0.3);
+}
+#result .links a:hover { background: rgba(37, 99, 235, 0.2); }
+
+footer {
+  margin-top: 32px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+footer a { color: #93c5fd; text-decoration: none; }
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="badge">LegalDataPlatform - Self-service ingest</span>
+  <h1>Upload a CSV to ingest</h1>
+  <p>Drag-and-drop or browse. The system detects the schema and runs the pipeline. Results appear below.</p>
+</header>
+
+<main>
+
+<form id="upload-form">
+  <label for="file" class="dropzone" id="dropzone">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <h2>Drop your CSV here</h2>
+    <p>or click to browse - up to 50 MB</p>
+    <input type="file" id="file" name="file" accept=".csv" />
+  </label>
+
+  <div style="text-align: center;">
+    <button type="submit" class="btn" id="submit-btn" disabled>Run pipeline</button>
+  </div>
+</form>
+
+<div class="info">
+  <strong>What this does:</strong> the API reads your CSV headers, fuzzy-matches them
+  against the 3 known schemas (<code>legal_documents</code>, <code>counterparties</code>,
+  <code>transactions</code>), and triggers the corresponding Prefect flow. The raw file
+  lands in <code>data/inbox/</code> and the cleaned data ends up in PostgreSQL.
+</div>
+
+<div id="result"></div>
+
+</main>
+
+<footer>
+  Project: <a href="https://github.com/henriquezbh5-cpu/legaldataplatform" target="_blank">github.com/henriquezbh5-cpu/legaldataplatform</a>
+  &nbsp;-&nbsp;
+  <a href="http://localhost:4200" target="_blank">Prefect UI</a>
+  &nbsp;-&nbsp;
+  <a href="http://localhost:9001" target="_blank">MinIO Console</a>
+  &nbsp;-&nbsp;
+  <a href="/docs" target="_blank">API docs</a>
+</footer>
+
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('file');
+const submitBtn = document.getElementById('submit-btn');
+const form = document.getElementById('upload-form');
+const result = document.getElementById('result');
+
+let selectedFile = null;
+
+['dragenter', 'dragover'].forEach(evt => {
+  dropzone.addEventListener(evt, e => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+});
+['dragleave', 'drop'].forEach(evt => {
+  dropzone.addEventListener(evt, e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+  });
+});
+
+dropzone.addEventListener('drop', e => {
+  if (e.dataTransfer.files.length) {
+    selectedFile = e.dataTransfer.files[0];
+    fileInput.files = e.dataTransfer.files;
+    showSelected();
+  }
+});
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) {
+    selectedFile = e.target.files[0];
+    showSelected();
+  }
+});
+
+function showSelected() {
+  document.querySelector('.dropzone h2').textContent = selectedFile.name;
+  document.querySelector('.dropzone p').textContent =
+    (selectedFile.size / 1024).toFixed(1) + ' KB - click "Run pipeline" to process';
+  submitBtn.disabled = false;
+}
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!selectedFile) return;
+
+  submitBtn.innerHTML = '<span class="spinner"></span>Running pipeline...';
+  submitBtn.disabled = true;
+  result.classList.remove('show', 'success', 'warning', 'error');
+
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+
+  try {
+    const resp = await fetch('/upload', { method: 'POST', body: fd });
+    const data = await resp.json();
+    renderResult(resp.status, data);
+  } catch (err) {
+    result.innerHTML = '<h3 class="err">Upload error</h3><p>' + err.message + '</p>';
+    result.classList.add('show', 'error');
+  } finally {
+    submitBtn.innerHTML = 'Run pipeline';
+    submitBtn.disabled = false;
+  }
+});
+
+function renderResult(httpStatus, data) {
+  let cls = 'success', heading = '';
+
+  if (data.status === 'completed') {
+    heading = '<span class="ok">+</span> Pipeline completed';
+    cls = 'success';
+  } else if (data.status === 'needs_mapping') {
+    heading = '<span class="warn">!</span> Schema not confidently detected';
+    cls = 'warning';
+  } else if (data.status === 'schema_not_implemented') {
+    heading = '<span class="warn">!</span> Schema detected but not wired up';
+    cls = 'warning';
+  } else {
+    heading = '<span class="err">x</span> Pipeline failed';
+    cls = 'error';
+  }
+
+  let html = '<h3>' + heading + '</h3>';
+
+  if (data.status === 'completed') {
+    const s = data.summary || {};
+    html += '<table>';
+    html += row('File', data.filename);
+    html += row('Schema detected', data.schema_detected + ' (' + Math.round(data.schema_confidence * 100) + '% confidence)');
+    html += row('Records extracted', s.extracted ?? '-');
+    html += row('Records valid', s.valid ?? '-');
+    html += row('Records rejected (quarantine)', s.rejected ?? '-');
+    html += row('Records loaded to PostgreSQL', s.loaded ?? '-');
+    html += row('Run ID', data.run_id);
+    html += '</table>';
+
+    html += '<div class="links">';
+    html += '<a href="' + data.prefect_ui + '" target="_blank">View flow run in Prefect</a>';
+    html += '<a href="' + data.logs_url + '" target="_blank">View logs</a>';
+    html += '</div>';
+
+  } else if (data.status === 'needs_mapping') {
+    html += '<p>' + data.message + '</p>';
+    html += '<table>';
+    html += row('Best guess', data.match.best_guess);
+    html += row('Confidence', Math.round(data.match.confidence * 100) + '%');
+    html += row('Matched headers', (data.match.matched_headers || []).join(', ') || '-');
+    html += row('Unknown headers', (data.match.unknown_headers || []).join(', ') || '-');
+    html += '</table>';
+
+  } else {
+    html += '<p>' + (data.message || data.detail || JSON.stringify(data)) + '</p>';
+    if (data.run_id) {
+      html += '<div class="links"><a href="/runs/' + data.run_id + '/log" target="_blank">View logs</a></div>';
+    }
+  }
+
+  result.innerHTML = html;
+  result.classList.add('show', cls);
+}
+
+function row(k, v) {
+  return '<tr><td>' + k + '</td><td>' + v + '</td></tr>';
+}
+</script>
+
+</body>
+</html>

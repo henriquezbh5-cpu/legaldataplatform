@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pipeline log - {{ run_id }}</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  background: #0a0f1e;
+  color: #cbd5e1;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  padding: 24px;
+}
+header {
+  background: #1e293b;
+  padding: 12px 20px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Inter', sans-serif;
+}
+header h1 { font-size: 1rem; color: #f1f5f9; }
+header a {
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 0.85rem;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+pre {
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 10px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Run log: {{ run_id }}</h1>
+  <a href="/">&larr; Back to upload</a>
+</header>
+
+<pre>{{ log_text }}</pre>
+
+</body>
+</html>
