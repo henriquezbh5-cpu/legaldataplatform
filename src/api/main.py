@@ -19,9 +19,6 @@ from __future__ import annotations
 
 import csv
 import json
-import re
-import subprocess
-import sys
 import time
 import uuid
 from datetime import datetime
@@ -34,6 +31,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from src.api import analytics
+from src.api.processor import process_csv
 from src.api.schema_detector import detect_schema
 
 # ---------------------------------------------------------------------------
@@ -216,30 +214,47 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
             status_code=501,
         )
 
-    # Run the pipeline
+    # Run the pipeline directly (sync, in-process)
     run_id = f"{datetime.utcnow():%Y%m%dT%H%M%S}_{upload_id}"
     log_path = RUNS_DIR / f"{run_id}.log"
 
     started = time.time()
     try:
-        completed = _run_pipeline_against(inbox_path, log_path)
-    except subprocess.TimeoutExpired:
-        return JSONResponse(
-            {
-                "status": "timeout",
-                "upload_id": upload_id,
-                "run_id": run_id,
-                "message": "Pipeline took longer than 5 minutes; assumed hung.",
-            },
-            status_code=504,
-        )
+        result = process_csv(inbox_path, pipeline_name="api_upload")
+        run_status = "completed"
+        run_error: str | None = None
+    except Exception as e:  # noqa: BLE001
+        run_status = "failed"
+        run_error = str(e)
+        result = {
+            "extracted": row_count,
+            "valid": 0,
+            "rejected": 0,
+            "loaded": 0,
+            "timeline": [],
+            "dq_failures": [run_error],
+        }
     duration_seconds = round(time.time() - started, 2)
 
-    summary = _parse_flow_summary(log_path)
-    timeline = _parse_stage_timeline(log_path)
+    # Persist a small log for the /runs/{id}/log page
+    log_path.write_text(
+        f"upload_id={upload_id}\nfilename={safe_name}\nstatus={run_status}\n"
+        f"duration_seconds={duration_seconds}\n"
+        f"summary={json.dumps({k: v for k, v in result.items() if k != 'timeline'}, default=str)}\n"
+        + (f"error={run_error}\n" if run_error else ""),
+        encoding="utf-8",
+    )
 
-    # If the load succeeded, fetch a rich snapshot from PostgreSQL
-    if completed.returncode == 0:
+    summary = {
+        "extracted": result.get("extracted", 0),
+        "valid": result.get("valid", 0),
+        "rejected": result.get("rejected", 0),
+        "loaded": result.get("loaded", 0),
+    }
+    timeline = result.get("timeline", [])
+
+    # Fetch the post-load analytics snapshot
+    if run_status == "completed":
         try:
             stats = analytics.fetch_overview()
             preview = analytics.fetch_data_preview(20)
@@ -265,7 +280,7 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
         dq = {}
 
     response = {
-        "status": "completed" if completed.returncode == 0 else "failed",
+        "status": run_status,
         "upload_id": upload_id,
         "run_id": run_id,
         "filename": safe_name,
@@ -277,9 +292,9 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
         "matched_headers": match.matched_headers,
         "unknown_headers": match.unknown_headers,
         "duration_seconds": duration_seconds,
-        "exit_code": completed.returncode,
         "summary": summary,
         "timeline": timeline,
+        "error": run_error,
         "post_load_stats": stats,
         "data_preview": preview,
         "distribution": {
@@ -298,90 +313,9 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
             "logs": f"/runs/{run_id}/log",
         },
     }
-    return JSONResponse(response, status_code=200 if completed.returncode == 0 else 500)
+    return JSONResponse(response, status_code=200 if run_status == "completed" else 500)
 
 
-# ---------------------------------------------------------------------------
-# Internals
-# ---------------------------------------------------------------------------
-
-
-def _run_pipeline_against(csv_path: Path, log_path: Path) -> subprocess.CompletedProcess:
-    cmd = [sys.executable, "-m", "src.api._run_flow", str(csv_path)]
-    with log_path.open("w", encoding="utf-8") as log_fh:
-        return subprocess.run(
-            cmd,
-            stdout=log_fh,
-            stderr=subprocess.STDOUT,
-            timeout=300,
-            cwd=str(PROJECT_ROOT),
-            check=False,
-        )
-
-
-def _parse_flow_summary(log_path: Path) -> dict[str, Any]:
-    if not log_path.exists():
-        return {}
-    for line in log_path.read_text(encoding="utf-8", errors="replace").splitlines():
-        marker = "Flow summary: "
-        idx = line.find(marker)
-        if idx >= 0:
-            try:
-                return json.loads(line[idx + len(marker) :].replace("'", '"'))
-            except json.JSONDecodeError:
-                continue
-    return {}
-
-
-_TS_RE = re.compile(r"(\d{2}:\d{2}:\d{2}\.\d+)")
-
-
-def _parse_stage_timeline(log_path: Path) -> list[dict[str, Any]]:
-    """Extract Created/Finished events per task to build a stage timeline."""
-    if not log_path.exists():
-        return []
-
-    events: list[dict[str, Any]] = []
-    text = log_path.read_text(encoding="utf-8", errors="replace")
-
-    create_re = re.compile(r"Created task run '([^']+)'")
-    finish_re = re.compile(r"Task run '([^']+)' - Finished in state (\w+)")
-
-    starts: dict[str, str] = {}
-    for line in text.splitlines():
-        ts_m = _TS_RE.search(line)
-        if not ts_m:
-            continue
-        ts = ts_m.group(1)
-        cm = create_re.search(line)
-        if cm:
-            starts[cm.group(1)] = ts
-            continue
-        fm = finish_re.search(line)
-        if fm:
-            task_name = fm.group(1)
-            state = fm.group(2)
-            start_ts = starts.get(task_name)
-            duration_ms = None
-            if start_ts:
-                try:
-                    duration_ms = int(
-                        (
-                            datetime.strptime(ts, "%H:%M:%S.%f")
-                            - datetime.strptime(start_ts, "%H:%M:%S.%f")
-                        ).total_seconds()
-                        * 1000
-                    )
-                except ValueError:
-                    pass
-            stage = task_name.rsplit("-", 1)[0]
-            events.append(
-                {
-                    "stage": stage,
-                    "start": start_ts,
-                    "end": ts,
-                    "duration_ms": duration_ms,
-                    "state": state,
-                }
-            )
-    return events
+# Subprocess-based pipeline trigger removed in favor of in-process processor
+# (src.api.processor). It avoids asyncpg + Windows event-loop issues and
+# returns timing/counts directly. Older parsing helpers were here.
