@@ -25,10 +25,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import traceback
+
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from src.api import analytics
 from src.api.processor import process_csv
@@ -67,6 +71,48 @@ app = FastAPI(
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 STATIC_DIR.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+
+# ---------------------------------------------------------------------------
+# Global exception handlers — guarantee JSON on every error so the front-end
+# never has to parse HTML. Logs the full traceback on the server side.
+# ---------------------------------------------------------------------------
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    return JSONResponse(
+        {"status": "error", "code": exc.status_code, "detail": exc.detail},
+        status_code=exc.status_code,
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    return JSONResponse(
+        {"status": "error", "code": 422, "detail": "validation failed", "errors": exc.errors()},
+        status_code=422,
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    tb = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    print("=" * 60)
+    print(f"UNHANDLED EXCEPTION on {request.method} {request.url.path}")
+    print("".join(tb))
+    print("=" * 60)
+    return JSONResponse(
+        {
+            "status": "error",
+            "code": 500,
+            "detail": str(exc),
+            "exception_type": type(exc).__name__,
+        },
+        status_code=500,
+    )
 
 
 # ---------------------------------------------------------------------------
