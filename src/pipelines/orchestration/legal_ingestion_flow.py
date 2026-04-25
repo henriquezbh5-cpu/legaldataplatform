@@ -301,5 +301,13 @@ async def legal_ingestion_flow(
 
 if __name__ == "__main__":
     import asyncio
+    import sys
+
+    # On Windows, the default ProactorEventLoop has known issues with
+    # asyncpg's transport at shutdown ("Event loop is closed",
+    # "'NoneType' has no attribute 'send'"). Switching to the selector
+    # loop policy avoids the entire class of bugs.
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     asyncio.run(legal_ingestion_flow())
