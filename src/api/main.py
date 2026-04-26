@@ -28,6 +28,7 @@ from typing import Any
 import traceback
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -359,7 +360,10 @@ async def upload(file: UploadFile = File(...)) -> JSONResponse:
             "logs": f"/runs/{run_id}/log",
         },
     }
-    return JSONResponse(response, status_code=200 if run_status == "completed" else 500)
+    return JSONResponse(
+        jsonable_encoder(response),
+        status_code=200 if run_status == "completed" else 500,
+    )
 
 
 # Subprocess-based pipeline trigger removed in favor of in-process processor
