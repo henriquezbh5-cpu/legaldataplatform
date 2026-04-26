@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>LegalDataPlatform — Manual de uso sencillo</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #1f2937;
+    font-size: 11pt;
+    line-height: 1.55;
+    margin: 0;
+  }
+  h1 {
+    font-size: 22pt;
+    color: #0f172a;
+    border-bottom: 3px solid #2563eb;
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+  }
+  h2 {
+    font-size: 15pt;
+    color: #1e3a8a;
+    margin-top: 28px;
+    border-left: 5px solid #2563eb;
+    padding-left: 10px;
+  }
+  h3 {
+    font-size: 12.5pt;
+    color: #1e40af;
+    margin-top: 18px;
+    margin-bottom: 6px;
+  }
+  .lead {
+    color: #475569;
+    margin-top: 0;
+  }
+  .req-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 6px solid #2563eb;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 14px 0 4px 0;
+    font-size: 10.5pt;
+  }
+  .done-box {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-left: 6px solid #059669;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 8px 0 12px 0;
+    font-size: 10.5pt;
+  }
+  .done-box::before {
+    content: "Se hizo eso ✓";
+    display: block;
+    font-weight: 700;
+    color: #047857;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 12px 0;
+    font-size: 10pt;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 7px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #1e3a8a;
+    color: #fff;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+  code {
+    font-family: "Consolas", "Courier New", monospace;
+    background: #f1f5f9;
+    color: #0f172a;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 9.5pt;
+  }
+  .path {
+    font-family: "Consolas", monospace;
+    color: #b45309;
+    background: #fef3c7;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9.5pt;
+  }
+  ul { margin: 4px 0 8px 0; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  .step {
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin: 6px 0;
+    border-left: 4px solid #64748b;
+  }
+  .step b { color: #0f172a; }
+  .url {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-family: "Consolas", monospace;
+    font-size: 10pt;
+    display: inline-block;
+    margin: 4px 0;
+  }
+  .footer {
+    margin-top: 30px;
+    padding-top: 10px;
+    border-top: 1px solid #cbd5e1;
+    font-size: 9pt;
+    color: #64748b;
+    text-align: center;
+  }
+  .pill {
+    display: inline-block;
+    background: #dbeafe;
+    color: #1e3a8a;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 9pt;
+    margin-right: 4px;
+  }
+  .quickstart {
+    background: #fef9c3;
+    border: 1px solid #fde047;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 16px 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>LegalDataPlatform</h1>
+<p class="lead">Manual de uso sencillo · Plataforma ETL/ELT para datos legales y comerciales en Python + AWS + PostgreSQL</p>
+
+<div class="quickstart">
+  <b>Para abrir el proyecto en tu navegador:</b><br>
+  1) Levanta el API → <code>make api</code> (o <code>python -m uvicorn src.api.main:app --port 8000</code>)<br>
+  2) Abre <span class="url">http://127.0.0.1:8000/</span> · Swagger en <span class="url">http://127.0.0.1:8000/docs</span>
+</div>
+
+<h2>¿Qué es esta plataforma?</h2>
+<p>LegalDataPlatform es una plataforma <b>ETL/ELT</b> que ingesta datos legales y comerciales desde múltiples fuentes (SEC EDGAR, GLEIF, CSV, APIs REST), los normaliza, valida con reglas de calidad y los carga en <b>PostgreSQL</b> particionado. Sigue arquitectura medallion <b>Bronze → Silver → Gold</b> y está pensada para correr local con Docker o en <b>AWS</b> (S3 + Lambda + Glue + ECS).</p>
+
+<table>
+  <tr><th>Capa</th><th>Qué contiene</th><th>Dónde vive</th></tr>
+  <tr><td><b>Bronze</b></td><td>Datos crudos tal como llegan</td><td>S3 (Parquet) · bucket <code>bronze</code></td></tr>
+  <tr><td><b>Silver</b></td><td>Datos normalizados y con calidad validada</td><td>PostgreSQL (tablas particionadas)</td></tr>
+  <tr><td><b>Gold</b></td><td>Agregados de negocio listos para consumo</td><td>Materialized Views en PostgreSQL</td></tr>
+</table>
+
+<!-- ========================================================== -->
+<h2>1. Desarrollo de pipelines ETL/ELT en Python y AWS</h2>
+
+<div class="req-box">
+  <b>Requisito del puesto:</b> Diseñar y mantener pipelines ETL/ELT escalables en Python y AWS para la ingesta de datos de diversas fuentes legales y comerciales.
+</div>
+
+<div class="done-box">
+  Pipelines orquestados con <b>Prefect</b>, escritos en Python 3.11+. Cargas concurrentes con <code>asyncio</code>, transformaciones con <b>Polars</b> y <b>Pydantic</b>, despliegue en AWS vía Lambda + Glue + ECS. Cuatro flujos de ingesta listos: SEC EDGAR, GLEIF, CSV legal y comercial.
+</div>
+
+<h3>Dónde está cada componente</h3>
+<table>
+  <tr><th>Componente</th><th>Ruta en el repo</th><th>Para qué sirve</th></tr>
+  <tr><td>Flujos orquestados (Prefect)</td><td class="path">src/pipelines/orchestration/</td><td>Define los pipelines de extremo a extremo</td></tr>
+  <tr><td>Extractores de fuentes</td><td class="path">src/pipelines/extractors/</td><td>SEC EDGAR, GLEIF, CSV, REST, S3, DB</td></tr>
+  <tr><td>Transformadores</td><td class="path">src/pipelines/transformers/</td><td>Normalizers, enrichers, SCD2</td></tr>
+  <tr><td>Loaders</td><td class="path">src/pipelines/loaders/</td><td>S3 Parquet (Bronze) y Postgres bulk (COPY)</td></tr>
+  <tr><td>AWS Lambda handlers</td><td class="path">src/aws/lambda_handlers/</td><td>Triggers S3 → SQS → pipeline</td></tr>
+  <tr><td>AWS Glue jobs</td><td class="path">src/aws/glue_jobs/</td><td>Normalización a escala con Spark</td></tr>
+  <tr><td>Cliente S3</td><td class="path">src/aws/s3/s3_client.py</td><td>Wrapper boto3/aioboto3 para Bronze/Silver/Quarantine</td></tr>
+  <tr><td>Documentación detallada</td><td class="path">docs/PIPELINES.md · docs/AWS_DEPLOYMENT.md</td><td>Diseño, deployment y trade-offs</td></tr>
+</table>
+
+<h3>Cómo correr un pipeline (paso a paso)</h3>
+<div class="step"><b>Paso 1.</b> Levanta el stack local: <code>make up</code> (arranca Postgres, MinIO, Prefect, Grafana en Docker)</div>
+<div class="step"><b>Paso 2.</b> Aplica migraciones: <code>make migrate</code></div>
+<div class="step"><b>Paso 3.</b> Corre un flujo. Tienes 4 disponibles:
+  <ul>
+    <li><code>make pipeline</code> — ingesta de documentos legales desde CSV</li>
+    <li><code>make sec-edgar</code> — ingesta desde la API real de SEC EDGAR</li>
+    <li><code>make gleif</code> — ingesta de identificadores LEI desde GLEIF</li>
+    <li><code>make commercial</code> — ingesta de transacciones comerciales</li>
+  </ul>
+</div>
+<div class="step"><b>Paso 4.</b> Observa el run en Prefect UI → <span class="url">http://localhost:4200</span></div>
+<div class="step"><b>Paso 5.</b> Verifica el archivo Parquet en MinIO → <span class="url">http://localhost:9001</span> (bucket <code>bronze</code>)</div>
+
+<h3>Flujo end-to-end (ejemplo: documentos legales)</h3>
+<ol>
+  <li><b>Extract</b> — <code>CSVExtractor</code> lee en chunks de 5,000 filas con <code>asyncio</code> (no carga todo en memoria)</li>
+  <li><b>Bronze</b> — <code>S3ParquetLoader</code> escribe Parquet particionado por fecha en S3/MinIO</li>
+  <li><b>Normalize</b> — Pydantic valida cada registro contra <code>LegalDocumentSchema</code></li>
+  <li><b>Quality gate</b> — el motor de reglas YAML aplica validaciones declarativas</li>
+  <li><b>Load</b> — <code>PostgresBulkLoader</code> usa <code>COPY</code> + <code>UPSERT</code> hacia tabla particionada</li>
+  <li><b>Gold</b> — refresca Materialized Views <code>CONCURRENTLY</code> (sin bloquear lecturas)</li>
+</ol>
+
+<h3>En AWS</h3>
+<ul>
+  <li><b>S3 PUT → Lambda</b> (<span class="path">src/aws/lambda_handlers/s3_event_ingest.py</span>) encola un mensaje en <b>SQS</b></li>
+  <li><b>SQS → Lambda</b> (<span class="path">sqs_pipeline_trigger.py</span>) dispara el pipeline en <b>ECS</b></li>
+  <li><b>AWS Glue</b> (<span class="path">src/aws/glue_jobs/legal_doc_normalize.py</span>) escala normalización con Spark</li>
+  <li><b>Despliegue</b> documentado en <span class="path">docs/AWS_DEPLOYMENT.md</span> e infra en <span class="path">infra/</span></li>
+</ul>
+
+<!-- ========================================================== -->
+<h2>2. Optimización de PostgreSQL</h2>
+
+<div class="req-box">
+  <b>Requisito del puesto:</b> Gestionar y optimizar bases de datos PostgreSQL, garantizando alto rendimiento para datos relacionales complejos.
+</div>
+
+<div class="done-box">
+  Particionado por rango mensual, índices BRIN/GIN/expression/partial/covering, Materialized Views con refresh CONCURRENTLY, suite de benchmarks reproducibles y migraciones versionadas con Alembic. Documentado en <span class="path">docs/POSTGRESQL_OPTIMIZATION.md</span>.
+</div>
+
+<h3>Dónde está cada optimización</h3>
+<table>
+  <tr><th>Técnica</th><th>Archivo</th><th>Beneficio</th></tr>
+  <tr><td>Particionado mensual</td><td class="path">src/database/optimization/partitioning.sql</td><td>Pruning automático + DROP O(1) + scans paralelos</td></tr>
+  <tr><td>Índices avanzados</td><td class="path">src/database/optimization/indexes_additional.sql</td><td>BRIN, GIN, expresión, partial, covering</td></tr>
+  <tr><td>Materialized Views</td><td class="path">src/database/optimization/materialized_views.sql</td><td>Agregados pre-calculados, refresh CONCURRENTLY</td></tr>
+  <tr><td>Helpers de query</td><td class="path">src/database/optimization/query_helpers.py</td><td>EXPLAIN ANALYZE programático, profiling</td></tr>
+  <tr><td>Modelos ORM</td><td class="path">src/database/models/</td><td>SQLAlchemy 2.0 async + dim/staging/legal/commercial</td></tr>
+  <tr><td>Migraciones</td><td class="path">src/database/migrations/versions/</td><td>Alembic versionado, repetible, reversible</td></tr>
+  <tr><td>Benchmarks</td><td class="path">scripts/benchmarks/query_benchmark.py</td><td>Mide p50/p95 antes y después de cambios</td></tr>
+</table>
+
+<h3>Optimizaciones aplicadas (lo que verás en producción)</h3>
+<ul>
+  <li><b>Particionado RANGE mensual</b> en <code>legal_documents</code> y <code>transactions</code> — el planner ignora particiones irrelevantes y <code>VACUUM</code>/<code>REINDEX</code> trabajan por partición</li>
+  <li><b>Índice BRIN</b> en <code>transaction_date</code> → ~10KB/millón de filas vs ~30MB de un BTREE</li>
+  <li><b>Covering index</b> con <code>INCLUDE</code> para queries de "suma últimos 90 días" → index-only scans</li>
+  <li><b>Índices parciales</b> para contratos activos (filtra <code>WHERE status IN ('ACTIVE','PENDING')</code>)</li>
+  <li><b>Índices GIN</b> sobre columnas JSONB (<code>tags</code>, <code>metadata</code>) para búsquedas por tag/atributo</li>
+  <li><b>Índice de expresión</b> <code>lower(legal_name)</code> para búsquedas case-insensitive</li>
+  <li><b>Materialized Views</b> precomputan revenue mensual por contraparte; refresh <code>CONCURRENTLY</code> no bloquea lectores</li>
+  <li><b>UPSERT vía <code>COPY</code> + tabla staging</b> en lugar de <code>INSERT</code> fila por fila → 10–50× más rápido</li>
+</ul>
+
+<h3>Cómo medir performance</h3>
+<div class="step"><b>Paso 1.</b> Ejecuta los benchmarks: <code>make benchmark</code></div>
+<div class="step"><b>Paso 2.</b> Captura evidencia con <code>make evidence</code> → genera <span class="path">docs/evidence/benchmarks.md</span></div>
+<div class="step"><b>Paso 3.</b> Revisa Grafana en <span class="url">http://localhost:3000</span> para ver latencia de queries en tiempo real</div>
+
+<!-- ========================================================== -->
+<h2>3. Calidad y normalización de datos (Fuente de verdad)</h2>
+
+<div class="req-box">
+  <b>Requisito del puesto:</b> Implementar procesos rigurosos de validación y limpieza que mantengan los estándares de "Fuente de verdad".
+</div>
+
+<div class="done-box">
+  Doble capa de validación: (1) Pydantic para tipado y normalización, (2) reglas YAML declarativas con severidades <code>error</code>/<code>warning</code>. Registros que fallan reglas <code>error</code> bloquean el pipeline y van a un bucket de cuarentena en S3 con el motivo. Integración opcional con Great Expectations.
+</div>
+
+<h3>Dónde está cada control</h3>
+<table>
+  <tr><th>Control</th><th>Archivo</th><th>Qué hace</th></tr>
+  <tr><td>Reglas declarativas YAML</td><td class="path">src/data_quality/rules/legal_documents.yaml<br>src/data_quality/rules/transactions.yaml</td><td>Define rules sin código (not_null, regex, in_set, row_count_range)</td></tr>
+  <tr><td>Motor de reglas</td><td class="path">src/data_quality/validators/rule_engine.py</td><td>Aplica las reglas y separa severidad error vs warning</td></tr>
+  <tr><td>Schemas Pydantic legal</td><td class="path">src/schemas/legal.py</td><td>LegalDocumentSchema, LegalEntitySchema, RegulationSchema</td></tr>
+  <tr><td>Schemas Pydantic comercial</td><td class="path">src/schemas/commercial.py</td><td>TransactionSchema, ContractSchema, CounterpartySchema</td></tr>
+  <tr><td>Normalizers</td><td class="path">src/pipelines/transformers/normalizers.py</td><td>Aplica schema y separa válidos/rechazados</td></tr>
+  <tr><td>SCD2</td><td class="path">src/pipelines/transformers/scd2.py</td><td>Slowly Changing Dimensions tipo 2 para historizar cambios</td></tr>
+  <tr><td>Integración Great Expectations</td><td class="path">src/data_quality/ge_integration.py</td><td>Suites adicionales para auditoría</td></tr>
+  <tr><td>Reportes de DQ</td><td class="path">src/data_quality/reports/</td><td>Output de cada corrida (válidos, rechazos, warnings)</td></tr>
+  <tr><td>Documentación</td><td class="path">docs/DATA_QUALITY.md</td><td>Filosofía, severidades, runbooks de incidentes</td></tr>
+</table>
+
+<h3>Ejemplo: reglas activas para <code>legal_documents</code></h3>
+<table>
+  <tr><th>Regla</th><th>Tipo</th><th>Severidad</th></tr>
+  <tr><td>document_id_not_null</td><td>not_null sobre source_id</td><td>error (bloquea)</td></tr>
+  <tr><td>document_hash_is_sha256</td><td>regex <code>^[a-f0-9]{64}$</code></td><td>error (bloquea)</td></tr>
+  <tr><td>document_type_in_taxonomy</td><td>in_set (JUDGMENT, REGULATION, CONTRACT, NOTICE, FILING, DECREE)</td><td>warning (alerta)</td></tr>
+  <tr><td>jurisdiction_not_null</td><td>not_null</td><td>error (bloquea)</td></tr>
+  <tr><td>row_count_reasonable</td><td>row_count_range (1 ≤ N ≤ 10M)</td><td>error (bloquea)</td></tr>
+</table>
+
+<h3>Cómo se aplica el principio "Fuente de verdad"</h3>
+<ol>
+  <li>Cada registro entra a <b>Bronze</b> tal cual (auditoría completa)</li>
+  <li>Pydantic intenta normalizarlo. Si falla → va a <b>Quarantine</b> con el error</li>
+  <li>El motor de reglas YAML aplica controles. Reglas <code>error</code> → bloquean el flow vía <code>assert_no_errors()</code></li>
+  <li>Reglas <code>warning</code> → emiten métricas Prometheus pero no bloquean</li>
+  <li>Solo registros que pasan ambas capas llegan a <b>Silver</b> (la "fuente de verdad")</li>
+  <li>Cada registro lleva un <code>source_hash</code> SHA-256 para idempotencia y trazabilidad</li>
+</ol>
+
+<h3>Cómo agregar una nueva regla (sin tocar código)</h3>
+<div class="step"><b>Paso 1.</b> Edita <span class="path">src/data_quality/rules/legal_documents.yaml</span></div>
+<div class="step"><b>Paso 2.</b> Agrega un bloque como:
+<pre style="background:#1e293b;color:#e2e8f0;padding:10px;border-radius:4px;font-size:9.5pt;">- name: title_min_length
+  type: min_length
+  column: title
+  params: { min: 5 }
+  severity: warning</pre>
+</div>
+<div class="step"><b>Paso 3.</b> Re-ejecuta el pipeline. La regla se aplicará automáticamente.</div>
+
+<!-- ========================================================== -->
+<h2>Resumen de URLs y comandos</h2>
+<table>
+  <tr><th>Servicio</th><th>URL / Comando</th></tr>
+  <tr><td>API + Dashboard</td><td><span class="url">http://127.0.0.1:8000/</span></td></tr>
+  <tr><td>Swagger docs</td><td><span class="url">http://127.0.0.1:8000/docs</span></td></tr>
+  <tr><td>Prefect UI</td><td><span class="url">http://localhost:4200</span></td></tr>
+  <tr><td>MinIO (S3 local)</td><td><span class="url">http://localhost:9001</span></td></tr>
+  <tr><td>Grafana</td><td><span class="url">http://localhost:3000</span></td></tr>
+  <tr><td>Levantar todo</td><td><code>make up</code></td></tr>
+  <tr><td>Migrar BD</td><td><code>make migrate</code></td></tr>
+  <tr><td>Correr pipeline</td><td><code>make pipeline</code> · <code>make sec-edgar</code> · <code>make gleif</code> · <code>make commercial</code></td></tr>
+  <tr><td>Levantar API</td><td><code>make api</code></td></tr>
+  <tr><td>Tests</td><td><code>make test</code></td></tr>
+  <tr><td>Benchmark + evidencia</td><td><code>make benchmark</code> · <code>make evidence</code></td></tr>
+</table>
+
+<div class="footer">
+  LegalDataPlatform · Manual de uso simple · Generado el 2026-04-26 · Humberto Henriquez
+</div>
+
+</body>
+</html>
